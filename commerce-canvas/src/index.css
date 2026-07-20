@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+/* Commerce Canvas — commercetools-branded dark theme.
+   Palette, radii, and type are the commercetools design-system values (navy #191741,
+   electric violet #6359FF, teal #0BBFBF; near-black #0A0820 with a violet undertone). */
+@theme {
+  /* Surfaces — navy/violet family; never true black */
+  --color-bg-base: #0a0820;       /* near-black, violet undertone */
+  --color-bg-sidebar: #12102e;
+  --color-bg-panel: #191741;      /* commercetools navy */
+  --color-bg-card: #201e4d;
+  --color-bg-hover: #262357;
+  --color-bg-active: #2f2c6b;
+  --color-bg-t2: #241a5e;         /* T2 surface — clearly violet, distinct from T1 */
+  --color-brd: #302d63;           /* 1px navy-tinted divider */
+  --color-brd-light: #403c78;     /* 2px emphasis */
+
+  --color-text: #f4f2ff;          /* off-white on dark */
+  --color-text-secondary: #a9a6d8;
+  --color-text-muted: #6d6aa0;
+
+  /* Accents — exact brand values */
+  --color-violet: #6359ff;        /* signature accent — CTAs, links, emphasis */
+  --color-violet-light: #c2c2ff;
+  --color-violet-deep: #4242b2;
+  --color-teal: #0bbfbf;          /* success / secondary */
+  --color-teal-light: #9ff7ee;
+  --color-yellow: #ffc806;        /* ct Yellow */
+  --color-orange: #ff8b00;
+  --color-red: #ef4444;
+
+  /* Radii — 8 / 16 / 24 / 32 / pill; never 4px */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-2xl: 32px;
+  --radius-3xl: 32px;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--color-bg-base);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Light main pane on the dark shell — remaps the surface/text tokens to a light
+   ct Earth theme for everything rendered inside <main>; accents stay ct Violet/Teal/Yellow. */
+.surface-light {
+  --color-bg-base: #f7f2ea;      /* ct Earth */
+  --color-bg-panel: #ffffff;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f1ece1;
+  --color-bg-active: #eae2d3;
+  --color-brd: #e6e0d3;
+  --color-brd-light: #d7cfbd;
+  --color-text: #191741;         /* ct Plum */
+  --color-text-secondary: #55527a;
+  --color-text-muted: #8b88a3;
+  --color-violet-light: #4a3fd6; /* readable violet ink on light */
+  --color-teal-light: #0a8f8f;   /* readable teal ink on light */
+  background-color: var(--color-bg-base);
+  color: var(--color-text);      /* base/inherited text → ct Plum on the light pane */
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-brd-light); border-radius: 3px; }
+
+@keyframes canvas-pop {
+  0% { transform: scale(0.5); opacity: 0.4; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.just-completed { animation: canvas-pop 0.4s ease-out; }

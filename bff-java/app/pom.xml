@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lifestylehomecorp</groupId>
+        <artifactId>training-bff</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>app</artifactId>
+    <name>app (aggregator)</name>
+    <description>
+        Assembles every module into the full BFF on :8081. Depends on all domain modules;
+        no domain logic of its own.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>platform</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>project</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>training</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+
+        <!-- Dev-only: auto-restarts the app when compiled classes change (e.g. from the IDE).
+             `optional` keeps it off downstream classpaths and out of the repackaged jar. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Several modules carry a @SpringBootApplication, so name the aggregator's
+                         main class explicitly for both repackage and spring-boot:run. -->
+                    <mainClass>com.lifestylehomecorp.app.BffApplication</mainClass>
+                    <!-- Run with cwd = the bff-java root (the reactor root) so spring-dotenv finds
+                         ./.env. Without this, `mvn spring-boot:run -pl app` runs from app/ and the
+                         .env is missed -> all ${CTP_*} stay literal and boot fails. -->
+                    <workingDirectory>${maven.multiModuleProjectDirectory}</workingDirectory>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

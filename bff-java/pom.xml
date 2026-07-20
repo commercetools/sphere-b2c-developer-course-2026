@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.13</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.lifestylehomecorp</groupId>
+    <artifactId>training-bff</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>LHC Training BFF</name>
+    <description>Modular Spring Boot BFF for the commercetools B2C Dev course</description>
+
+    <!--
+      Domain-first Maven multi-module reactor. (Session 1 release — the catalog module arrives in
+      Session 2.)
+      - platform  : shared kernel (ProjectApiRoot bean, config, error advice). No controllers.
+      - project   : the worked reference (GET /api/project) + the Session-1 Stores tasks.
+      - training  : course task/progress tracking (participants rarely touch).
+      - app       : aggregator that assembles every module and runs the full BFF on :8081.
+      Every domain module depends on `platform` ONLY, never on each other or on `app`.
+    -->
+    <modules>
+        <module>platform</module>
+        <module>project</module>
+        <module>training</module>
+        <module>app</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Pin the commercetools Java SDK. Confirm the latest via the commercetools-knowledge MCP. -->
+        <commercetools.version>18.2.0</commercetools.version>
+        <spring-dotenv.version>4.0.0</spring-dotenv.version>
+        <springdoc.version>2.8.17</springdoc.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- commercetools typed API + OkHttp3 HTTP client.
+                 We use commercetools-okhttp-client3 (NOT the default commercetools-http-client,
+                 which bundles OkHttp4) to avoid an OkHttp version clash on the Spring Boot classpath. -->
+            <dependency>
+                <groupId>com.commercetools.sdk</groupId>
+                <artifactId>commercetools-sdk-java-api</artifactId>
+                <version>${commercetools.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.commercetools.sdk</groupId>
+                <artifactId>commercetools-okhttp-client3</artifactId>
+                <version>${commercetools.version}</version>
+            </dependency>
+
+            <!-- Reads a gitignored .env into the Spring Environment. -->
+            <dependency>
+                <groupId>me.paulschwarz</groupId>
+                <artifactId>spring-dotenv</artifactId>
+                <version>${spring-dotenv.version}</version>
+            </dependency>
+
+            <!-- Swagger UI at /swagger-ui.html -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- Internal modules -->
+            <dependency>
+                <groupId>com.lifestylehomecorp</groupId>
+                <artifactId>platform</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lifestylehomecorp</groupId>
+                <artifactId>project</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lifestylehomecorp</groupId>
+                <artifactId>training</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

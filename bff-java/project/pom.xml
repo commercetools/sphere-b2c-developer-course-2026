@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lifestylehomecorp</groupId>
+        <artifactId>training-bff</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>project</artifactId>
+    <name>project (worked reference slice)</name>
+    <description>
+        The fully-worked reference: GET /api/project implemented through every layer
+        (api -> application -> domain -> infrastructure). Nothing here is stubbed — it is
+        the pattern every other domain module copies. Depends on `platform` only.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>platform</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- exec classifier: produces a runnable project-exec.jar for standalone use,
+                 while the plain jar stays usable as a dependency of `app`. -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <classifier>exec</classifier>
+                    <mainClass>com.lifestylehomecorp.project.ProjectApplication</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

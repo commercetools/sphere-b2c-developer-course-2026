@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lifestylehomecorp</groupId>
+        <artifactId>training-bff</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>platform</artifactId>
+    <name>platform (shared kernel)</name>
+    <description>
+        Shared kernel: the single ProjectApiRoot bean, CtpProperties config, and the
+        commercetools error advice. No controllers of its own — every domain module builds on this.
+    </description>
+
+    <dependencies>
+        <!-- Web is needed for the @RestControllerAdvice (cross-cutting error mapping),
+             not for controllers — platform exposes no endpoints of its own. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.commercetools.sdk</groupId>
+            <artifactId>commercetools-sdk-java-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.commercetools.sdk</groupId>
+            <artifactId>commercetools-okhttp-client3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+        </dependency>
+    </dependencies>
+
+    <!-- Pure library: no spring-boot repackage, no main class. -->
+</project>
