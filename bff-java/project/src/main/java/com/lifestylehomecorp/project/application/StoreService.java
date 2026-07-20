@@ -1,6 +1,7 @@
 package com.lifestylehomecorp.project.application;
 
-import com.lifestylehomecorp.platform.errors.TaskNotImplementedException;
+import com.commercetools.api.models.store.Store;
+import com.commercetools.api.models.store_country.StoreCountry;
 import com.lifestylehomecorp.project.domain.StoreContext;
 import com.lifestylehomecorp.project.domain.StoreSummary;
 import org.springframework.stereotype.Service;
@@ -45,10 +46,31 @@ public class StoreService {
      * repository's SDK reads. This is the design task — the SDK reads already exist in the repository.
      */
     public StoreContext storeContext(String storeKey) {
-        // TODO (Task 1.4): resolve the active store/region — pick the active store (from storeKey or a
-        // default), decide the fallback when it is missing/unknown (never throw), and build a
-        // StoreContext from the repository's SDK reads (findAll, Task 1.2). This is the design task.
-        // See the @TaskDescription hint + session-tasks-detailed.md.
-        throw new TaskNotImplementedException("1.4");
+        // Decision: region = Store. Project currencies/languages define the *possible* options; a Store
+        // selects the active language/country set and its distribution Channel (pricing/assortment scope).
+        List<Store> stores = storeRepository.findAll();   // raw SDK Stores (findAll expands channels)
+        if (stores.isEmpty()) {
+            return new StoreContext(null, null, List.of(), List.of(), List.of(), List.of());
+        }
+        List<String> available = stores.stream().map(Store::getKey).toList();
+        // Resolve the active store from ?store=<key>; fall back to the first store — never throw on a
+        // missing/unknown key, so a bad request can't crash the storefront.
+        Store active = stores.stream()
+                .filter(s -> s.getKey().equals(storeKey))
+                .findFirst()
+                .orElse(stores.get(0));
+        List<String> channelKeys = active.getDistributionChannels() == null ? List.of()
+                : active.getDistributionChannels().stream()
+                        .map(ref -> ref.getObj() != null ? ref.getObj().getKey() : ref.getId())
+                        .toList();
+        List<String> countries = active.getCountries() == null ? List.of()
+                : active.getCountries().stream().map(StoreCountry::getCode).toList();
+        return new StoreContext(
+                active.getKey(),
+                StoreMapper.toSummary(active).name(),
+                available,
+                active.getLanguages() == null ? List.of() : active.getLanguages(),
+                countries,
+                channelKeys);
     }
 }
