@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TaskItem, endpointParams, resolveEndpoint } from '../api/bff';
 import { methodColor, tierClasses } from '../lib/ui';
-import { Check, Lightbulb, TriangleAlert, Info } from '../lib/icons';
+import { Check, Lightbulb, TriangleAlert, Info, ListChecks } from '../lib/icons';
 
 /** Main panel: full detail of the selected task + Try It. */
 export function TaskDetail({
@@ -62,25 +62,41 @@ export function TaskDetail({
           <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
             {task.tier === 'T1' ? 'Tier 1 · AI-accelerated' : 'Tier 2 · human-in-the-loop'}
           </span>
-          {task.tier === 'T1'
-            ? 'Implement exactly one commercetools SDK call in the repository, then validate it and explain it back. AI accelerates the plumbing; you verify it.'
-            : "You own the design decision and the logic here; AI assists — there's a defensible answer to reach and defend, not a single generated one."}
+          {/* The self-contained, promptable task spec — paste-ready for an AI agent (module, layer,
+              method, SDK detail, goal). Falls back to the generic tier framing if unset. */}
+          <p className="leading-relaxed">
+            {task.description
+              ? task.description
+              : task.tier === 'T1'
+                ? 'Implement exactly one commercetools SDK call in the repository, then validate it and explain it back. AI accelerates the plumbing; you verify it.'
+                : "You own the design decision and the logic here; AI assists — there's a defensible answer to reach and defend, not a single generated one."}
+          </p>
         </div>
       ) : null}
 
-      {task.description ? (
-        <Section title="Description">
-          <p className="text-[var(--color-text-secondary)]">{task.description}</p>
+      {task.tier === 'T2' && task.decisions && task.decisions.length > 0 ? (
+        <Section title="Decisions you own">
+          <ul className="space-y-2 rounded-lg border border-[var(--color-yellow)]/40 bg-[var(--color-yellow)]/10 p-4">
+            {task.decisions.map((d, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)]">
+                <ListChecks size={16} className="mt-0.5 shrink-0 text-[var(--color-yellow)]" />
+                <span>{d}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+            Decide and be ready to defend each — this is the human-in-the-loop work AI can assist but not settle for you.
+          </p>
         </Section>
       ) : null}
 
       {task.hint ? (
-        <Section title="Hint">
+        <Section title="Learn more">
+          {/* A short pointer to the relevant commercetools docs — explore, don't copy. The full
+              promptable spec (with the SDK detail) lives in the tier block above. */}
           <div className="flex items-start gap-2 rounded-lg border border-[var(--color-brd)] bg-[var(--color-bg-card)] p-3">
             <Lightbulb size={16} className="mt-0.5 shrink-0 text-[var(--color-teal-light)]" />
-            <code className="min-w-0 break-words text-sm text-[var(--color-teal-light)]" style={{ fontFamily: 'var(--font-mono)' }}>
-              {task.hint}
-            </code>
+            <span className="min-w-0 break-words text-sm text-[var(--color-text-secondary)]">{task.hint}</span>
           </div>
         </Section>
       ) : null}

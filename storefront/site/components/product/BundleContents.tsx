@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { Package } from '@/components/ui/icons';
 import { bffGet } from '@/lib/bff/client';
 import { usePreferences } from '@/context/preferences-context';
-import { COUNTRY_CONFIG, formatMoney } from '@/lib/utils';
+import { formatMoney } from '@/lib/utils';
 
 /**
  * Task 2.7 (catalog.bundles): the PDP bundle section. Fetches GET /api/products/{key}/bundle, which
@@ -42,11 +42,11 @@ const SAMPLE: BundleView = {
 
 export function BundleContents({ productKey }: { productKey?: string }) {
   const locale = useLocale();
-  const { currency } = usePreferences();
-  const country = COUNTRY_CONFIG[locale]?.country;
+  const { currency, country, channel } = usePreferences();
   const params = new URLSearchParams({ locale });
   if (currency) params.set('priceCurrency', currency);
   if (country) params.set('priceCountry', country);
+  if (channel) params.set('priceChannel', channel);
 
   const { data } = useSWR(
     productKey ? `products/${productKey}/bundle?${params.toString()}` : null,

@@ -19,10 +19,10 @@
     <description>Modular Spring Boot BFF for the commercetools B2C Dev course</description>
 
     <!--
-      Domain-first Maven multi-module reactor. (Session 1 release — the catalog module arrives in
-      Session 2.)
+      Domain-first Maven multi-module reactor.
       - platform  : shared kernel (ProjectApiRoot bean, config, error advice). No controllers.
-      - project   : the worked reference (GET /api/project) + the Session-1 Stores tasks.
+      - project   : fully-worked reference vertical slice (GET /api/project) through all layers.
+      - catalog   : domain module with api/application/domain pre-wired; ONLY infrastructure stubbed (501).
       - training  : course task/progress tracking (participants rarely touch).
       - app       : aggregator that assembles every module and runs the full BFF on :8081.
       Every domain module depends on `platform` ONLY, never on each other or on `app`.
@@ -30,6 +30,7 @@
     <modules>
         <module>platform</module>
         <module>project</module>
+        <module>catalog</module>
         <module>training</module>
         <module>app</module>
     </modules>
@@ -83,6 +84,11 @@
             <dependency>
                 <groupId>com.lifestylehomecorp</groupId>
                 <artifactId>project</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lifestylehomecorp</groupId>
+                <artifactId>catalog</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

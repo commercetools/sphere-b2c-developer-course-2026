@@ -28,6 +28,10 @@
         </dependency>
         <dependency>
             <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>catalog</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
             <artifactId>training</artifactId>
         </dependency>
         <dependency>

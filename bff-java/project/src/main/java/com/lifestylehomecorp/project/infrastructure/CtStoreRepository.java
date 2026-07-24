@@ -28,8 +28,8 @@ public class CtStoreRepository implements StoreRepository {
     @Override
     public List<Store> findAll() {
         // TODO (Task 1.2): implement the store-list SDK call, returning the raw SDK List<Store>
-        // (expand distributionChannels[*]). See the @TaskDescription hint + session-tasks-detailed.md;
-        // ground it on the commercetools-knowledge MCP.
+        // (expand distributionChannels[*] so the mapper can read channel KEYS). See the
+        // @TaskDescription hint + session-tasks-detailed.md; ground it on the commercetools-knowledge MCP.
         throw new TaskNotImplementedException("1.2");
     }
 

@@ -2,7 +2,7 @@
 
 import { useCapability } from '@/context/capabilities-context';
 import { usePreferences } from '@/context/preferences-context';
-import { languageLabel } from '@/lib/utils';
+import { countryLabel, languageLabel } from '@/lib/utils';
 
 /**
  * Slim store-facts strip, gated on project.info. Kept lightweight (not a big locked card) so the
@@ -33,12 +33,14 @@ export function StoreInfoBar() {
 }
 
 function StoreFacts() {
-  const { storeName, currency, language } = usePreferences();
+  const { storeName, currency, country, language, channel } = usePreferences();
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
       {storeName ? <span className="font-medium text-[var(--color-charcoal)]">{storeName}</span> : null}
       <Fact label="Currency" value={currency} />
+      <Fact label="Country" value={countryLabel(country)} />
       <Fact label="Language" value={languageLabel(language)} />
+      {channel ? <Fact label="Channel" value={channel} /> : null}
     </div>
   );
 }

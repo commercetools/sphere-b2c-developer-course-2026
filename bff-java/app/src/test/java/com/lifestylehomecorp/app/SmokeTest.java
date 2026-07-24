@@ -1,9 +1,9 @@
 package com.lifestylehomecorp.app;
 
 import com.commercetools.api.models.project.Project;
+import com.lifestylehomecorp.catalog.application.ProductRepository;
 import com.lifestylehomecorp.platform.errors.TaskNotImplementedException;
 import com.lifestylehomecorp.project.application.ProjectRepository;
-import com.lifestylehomecorp.project.application.StoreRepository;
 import com.lifestylehomecorp.training.config.ParticipantIdentity;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,11 +22,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Wiring smoke test for the Session-1 BFF. Runs fully offline (no SDK credentials): the worked
- * reference slice is verified with a mocked {@code ProjectRepository} (which returns a mocked SDK
- * {@code Project} — the service maps it), and the 501 mechanism is verified by mocking the
- * {@code StoreRepository} to throw {@link TaskNotImplementedException} and asserting the platform
- * error advice maps it to 501. Independent of which Session-1 tasks are actually implemented.
+ * Wiring smoke test for the full BFF. Runs fully offline (no SDK credentials): the worked slice is
+ * verified with a mocked ProjectRepository (which returns a mocked SDK Project — the service maps
+ * it), and the 501 mechanism is verified by mocking a repository to throw
+ * {@link TaskNotImplementedException} and asserting the platform error advice maps it to 501. This
+ * keeps the test independent of which tasks are actually implemented.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -34,7 +35,7 @@ class SmokeTest {
     @Autowired
     private MockMvc mockMvc;
 
-    // Replace the SDK gateway so the worked slice runs offline. Returns the raw SDK Project;
+    // Replace the SDK gateway so the worked slice runs offline. It now returns the raw SDK Project;
     // ProjectService maps it to the domain.
     @MockitoBean
     private ProjectRepository projectRepository;
@@ -43,14 +44,14 @@ class SmokeTest {
     @MockitoBean
     private ParticipantIdentity participantIdentity;
 
-    // Stand in for the Stores SDK gateway so the 501 mechanism can be exercised offline: with the
-    // repository stubbed to throw, GET /api/stores surfaces 501 regardless of real credentials.
+    // Stand in for the catalog SDK gateway so the 501 mechanism can be exercised offline: with the
+    // repository stubbed to throw, GET /api/products surfaces 501 regardless of real credentials.
     @MockitoBean
-    private StoreRepository storeRepository;
+    private ProductRepository productRepository;
 
-    /** Simulate the day-1 stubbed state for the Stores read (Task 1.2). */
-    private void stubUnimplementedStores() {
-        given(storeRepository.findAll()).willThrow(new TaskNotImplementedException("1.2"));
+    /** Simulate the day-1 stubbed state for the catalog reads. */
+    private void stubUnimplementedCatalog() {
+        given(productRepository.findAll(any())).willThrow(new TaskNotImplementedException("2.1"));
     }
 
     private void stubProject() {
@@ -74,31 +75,34 @@ class SmokeTest {
     }
 
     @Test
-    void unimplementedStoresEndpointReturns501() throws Exception {
-        stubUnimplementedStores();
-        mockMvc.perform(get("/api/stores"))
+    void unimplementedCatalogEndpointReturns501() throws Exception {
+        stubUnimplementedCatalog();
+        mockMvc.perform(get("/api/products"))
                 .andExpect(status().isNotImplemented());
     }
 
     @Test
     void taskTrackingReflectsImplementedVsStubbed() throws Exception {
         stubProject();
-        stubUnimplementedStores();
+        stubUnimplementedCatalog();
 
         mockMvc.perform(get("/api/training/tasks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.module=='project')]").exists());
+                .andExpect(jsonPath("$[?(@.module=='project')]").exists())
+                .andExpect(jsonPath("$[?(@.module=='catalog')]").exists());
 
         mockMvc.perform(get("/api/project")).andExpect(status().isOk());
-        mockMvc.perform(get("/api/stores")).andExpect(status().isNotImplemented());
+        mockMvc.perform(get("/api/products")).andExpect(status().isNotImplemented());
 
         mockMvc.perform(get("/api/training/progress"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.perTask['project.Session 1.1']").value(true))
-                .andExpect(jsonPath("$.perTask['project.Session 1.2']").value(false));
+                .andExpect(jsonPath("$.perTask['catalog.Session 2.1']").value(false));
 
         mockMvc.perform(get("/api/training/capabilities"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.unlocked").value(org.hamcrest.Matchers.hasItem("project.info")));
+                .andExpect(jsonPath("$.unlocked").value(org.hamcrest.Matchers.hasItem("project.info")))
+                .andExpect(jsonPath("$.unlocked").value(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("catalog.plp"))));
     }
 }

@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import useSWR from 'swr';
 import { bffGet } from '@/lib/bff/client';
 import { usePreferences } from '@/context/preferences-context';
-import { COUNTRY_CONFIG, formatMoney } from '@/lib/utils';
+import { formatMoney } from '@/lib/utils';
 
 /**
  * Task 2.6 (catalog.variantMatrix): the PDP variant selection matrix. Fetches
@@ -45,11 +45,11 @@ const SAMPLE: VariantMatrixView = {
 
 export function VariantSelector({ productKey }: { productKey?: string }) {
   const locale = useLocale();
-  const { currency } = usePreferences();
-  const country = COUNTRY_CONFIG[locale]?.country;
+  const { currency, country, channel } = usePreferences();
   const params = new URLSearchParams({ locale });
   if (currency) params.set('priceCurrency', currency);
   if (country) params.set('priceCountry', country);
+  if (channel) params.set('priceChannel', channel);
 
   const { data } = useSWR(
     productKey ? `products/${productKey}/variants?${params.toString()}` : null,

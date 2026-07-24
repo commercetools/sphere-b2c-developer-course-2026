@@ -19,7 +19,8 @@ public record TaskDefinition(
         String endpoint,
         String httpMethod,
         String description,
-        String hint) {
+        String hint,
+        java.util.List<String> decisions) {
 
     /** The stable task id — derived only from fields that don't change when metadata is edited. */
     public static String idOf(String module, String session, int taskNumber) {

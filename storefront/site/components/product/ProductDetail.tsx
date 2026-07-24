@@ -5,7 +5,7 @@ import { Package, Star } from '@/components/ui/icons';
 import { useLocale } from 'next-intl';
 import useSWR from 'swr';
 import { bffGet } from '@/lib/bff/client';
-import { formatMoney, COUNTRY_CONFIG } from '@/lib/utils';
+import { formatMoney } from '@/lib/utils';
 import { usePreferences } from '@/context/preferences-context';
 import { Link } from '@/i18n/routing';
 import { FeatureGate } from '@/components/ui/FeatureGate';
@@ -21,11 +21,11 @@ import { SAMPLE_PRODUCT } from './samples';
  */
 function ProductDetailInner({ slug }: { slug: string }) {
   const locale = useLocale();
-  const { currency } = usePreferences();
-  const country = COUNTRY_CONFIG[locale]?.country;
+  const { currency, country, channel } = usePreferences();
   const params = new URLSearchParams({ locale });
   if (currency) params.set('priceCurrency', currency);
   if (country) params.set('priceCountry', country);
+  if (channel) params.set('priceChannel', channel);
   // Task 2.5 (catalog.localeSlugs): resolve the PDP by its LOCALIZED slug. The URL slug differs per
   // locale (e.g. en `nala-two-seater-sofa` vs de `nala-zweisitzer-sofa`), so we resolve by slug — not
   // key. Until 2.5 is implemented the by-slug read returns 501, so we fall back to the by-key read

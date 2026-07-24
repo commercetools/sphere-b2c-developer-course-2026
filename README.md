@@ -4,8 +4,8 @@ Build a real storefront's backend — a **BFF** (Backend-for-Frontend) on commer
 method, with AI as your co-pilot**. As you implement each task, a capability unlocks and a section of
 the live **storefront** lights up.
 
-> **This release covers Session 1 — "Ignition": Platform, SDK, Project & Stores.** Later sessions add
-> more modules to the same codebase.
+> **This release covers Sessions 1 & 2 — "Ignition" (Platform, SDK, Project & Stores) and "The
+> Catalogue" (Product & Category reads).** Later sessions add more modules to the same codebase.
 
 ## Branches
 
@@ -53,7 +53,7 @@ cd storefront/site && npm install && npm run dev
 ```
 
 ## How you work through a task
-1. Open **Commerce Canvas**, pick the next Session-1 task.
+1. Open **Commerce Canvas**, pick the next task.
 2. Implement the **one stubbed method** in `bff-java` — **ground it on the Knowledge MCP; never guess the API.**
 3. Hit **Try It** in Canvas → the endpoint returns `200` → the capability unlocks → the storefront section lights up.
 4. **Explain it back** in your own words. Stuck? compare with the `solution` branch.

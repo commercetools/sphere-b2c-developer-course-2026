@@ -13,7 +13,7 @@ public final class TrainingDtos {
     public record TaskItem(
             String id, String module, String session, int taskNumber, String title,
             String tier, String capability, String endpoint, String httpMethod,
-            String description, String hint, boolean completed) {
+            String description, String hint, List<String> decisions, boolean completed) {
     }
 
     public record SessionGroup(String session, List<TaskItem> tasks) {

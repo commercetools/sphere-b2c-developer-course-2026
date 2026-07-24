@@ -13,7 +13,18 @@ export interface TaskItem {
   httpMethod: string;
   description?: string;
   hint?: string;
+  /** T2 only: the design decisions the participant must make and defend ("Decisions you own"). */
+  decisions?: string[];
   completed: boolean;
+}
+
+/** The connected commercetools project — populated once Task 1.1 (GET /api/project) works. */
+export interface ProjectInfo {
+  key: string;
+  name: string;
+  currencies: string[];
+  languages: string[];
+  countries: string[];
 }
 
 export interface SessionGroup {
@@ -92,6 +103,8 @@ async function getJson<T>(path: string): Promise<Fetched<T>> {
 }
 
 export const getTasks = () => getJson<ModuleGroup[]>('training/tasks');
+/** The connected project — 5xx/501 until Task 1.1 is implemented, then the real project settings. */
+export const getProject = () => getJson<ProjectInfo>('project');
 export const getProgress = () => getJson<Progress>('training/progress');
 export const getProgressAll = () => getJson<ParticipantSummary[]>('training/progress/all');
 export const getCapabilities = () => getJson<{ unlocked: string[] }>('training/capabilities');

@@ -45,10 +45,10 @@ public class StoreService {
      * repository's SDK reads. This is the design task — the SDK reads already exist in the repository.
      */
     public StoreContext storeContext(String storeKey) {
-        // TODO (Task 1.4): resolve the active store/region — pick the active store (from storeKey or a
-        // default), decide the fallback when it is missing/unknown (never throw), and build a
-        // StoreContext from the repository's SDK reads (findAll, Task 1.2). This is the design task.
-        // See the @TaskDescription hint + session-tasks-detailed.md.
+        // TODO (Task 1.4): resolve the active store/region. Pick the active store (from storeKey or a
+        // default), decide the fallback when it's missing/unknown (NEVER throw), and build a
+        // StoreContext from the repository's SDK reads (reuse findAll() from 1.2 — channels already
+        // expanded). Decide: region = Store vs Channel vs project scope. See session-tasks-detailed.md.
         throw new TaskNotImplementedException("1.4");
     }
 }
