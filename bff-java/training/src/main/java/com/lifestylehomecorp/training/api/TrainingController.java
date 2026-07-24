@@ -46,7 +46,7 @@ public class TrainingController {
             TaskItem item = new TaskItem(
                     t.id(), t.module(), t.session(), t.taskNumber(), t.title(), t.tier(),
                     t.capability(), t.endpoint(), t.httpMethod(), t.description(), t.hint(),
-                    progress.isCompleted(t.id()));
+                    t.decisions(), progress.isCompleted(t.id()));
             grouped.computeIfAbsent(t.module(), m -> new LinkedHashMap<>())
                     .computeIfAbsent(t.session(), s -> new java.util.ArrayList<>())
                     .add(item);

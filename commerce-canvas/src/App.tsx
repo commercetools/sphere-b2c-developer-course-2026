@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { TaskItem, getProgress, getProgressAll, getTasks, getTelemetryAll, tryEndpoint } from './api/bff';
+import { TaskItem, getProgress, getProgressAll, getProject, getTasks, getTelemetryAll, tryEndpoint } from './api/bff';
 import { usePoll } from './hooks/usePoll';
 import { flattenTasks } from './lib/ui';
 import { X } from './lib/icons';
@@ -20,6 +20,7 @@ export function App() {
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
   const tasksF = usePoll(getTasks, 8000);
+  const projectF = usePoll(getProject, 8000);
   const progressF = usePoll(getProgress, 3000);
   const allF = usePoll(getProgressAll, 4000);
   const telemetryF = usePoll(getTelemetryAll, 4000);
@@ -83,6 +84,11 @@ export function App() {
   const pid = progressF.data?.data?.participantId;
   const participantName = allF.data?.data?.find((p) => p.participantId === pid)?.participantName ?? pid;
 
+  // The connected project — available once Task 1.1 (GET /api/project) is implemented; drives the
+  // header title (falls back to the course's default identity before then).
+  const project = projectF.data?.ok ? projectF.data.data : null;
+  const projectName = project?.name || project?.key || null;
+
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <Header
@@ -92,6 +98,7 @@ export function App() {
         modules={modules}
         completed={completed}
         participantName={participantName}
+        projectName={projectName}
         storefrontUrl={storefrontUrl}
         focusCapability={selected?.capability ?? null}
         inspectorOpen={inspectorOpen}

@@ -45,6 +45,17 @@ public @interface TaskDescription {
     /** The task goal in plain terms — the "why", shown in Commerce Canvas. */
     String description() default "";
 
-    /** Optional hint shown in Commerce Canvas: the SDK call for T1; doc links / high-level logic hints for T2. */
+    /**
+     * Optional hint shown in Commerce Canvas: a SHORT pointer to the relevant commercetools docs so a
+     * participant can explore further — deliberately NOT the full SDK call (that lives, promptably, in
+     * {@link #description()}).
+     */
     String hint() default "";
+
+    /**
+     * For T2 tasks only: the design decisions the participant must make and defend — shown in Commerce
+     * Canvas as "Decisions you own" so the human-in-the-loop understands what to decide before letting
+     * AI help implement. Empty for T1 (there is one mechanical SDK call, no decision to own).
+     */
+    String[] decisions() default {};
 }

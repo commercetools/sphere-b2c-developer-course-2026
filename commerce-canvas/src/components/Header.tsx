@@ -11,6 +11,7 @@ export function Header({
   modules,
   completed,
   participantName,
+  projectName,
   storefrontUrl,
   focusCapability,
   inspectorOpen,
@@ -22,6 +23,8 @@ export function Header({
   modules: ModuleGroup[];
   completed: Set<string>;
   participantName?: string;
+  /** Connected commercetools project (from Task 1.1); falls back to the course identity until then. */
+  projectName?: string | null;
   storefrontUrl: string;
   focusCapability?: string | null;
   inspectorOpen?: boolean;
@@ -41,8 +44,11 @@ export function Header({
           <span className="text-[var(--color-violet-light)]">commercetools</span>
           <span className="text-[var(--color-text-muted)]"> Training</span>
         </span>
-        <span className="border-l border-[var(--color-brd)] pl-3 text-xs text-[var(--color-text-muted)]">
-          Lifestyle &amp; Home Corp
+        <span
+          className="border-l border-[var(--color-brd)] pl-3 text-xs text-[var(--color-text-muted)]"
+          title={projectName ? `Connected commercetools project: ${projectName}` : undefined}
+        >
+          {projectName ?? 'Lifestyle & Home Corp'}
         </span>
       </div>
 

@@ -71,7 +71,8 @@ public class TaskCatalog {
                 endpointOf(info),
                 httpMethodOf(info),
                 ann.description(),
-                ann.hint());
+                ann.hint(),
+                List.of(ann.decisions()));
     }
 
     private static String endpointOf(RequestMappingInfo info) {

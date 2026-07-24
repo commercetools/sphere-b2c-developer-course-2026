@@ -5,6 +5,8 @@ import { ShoppingCart } from '@/components/ui/icons';
 import { Link } from '@/i18n/routing';
 import { LanguageSwitch } from './LanguageSwitch';
 import { CurrencySwitch } from './CurrencySwitch';
+import { CountrySwitch } from './CountrySwitch';
+import { ChannelBar } from './ChannelBar';
 import { StoreSelector } from './StoreSelector';
 import { StoreInfoBar } from './StoreInfoBar';
 import { AnnouncementBar } from './AnnouncementBar';
@@ -26,6 +28,7 @@ export function Header() {
           <nav className="flex items-center gap-4 text-sm">
             <StoreSelector />
             <LanguageSwitch />
+            <CountrySwitch />
             <CurrencySwitch />
             <Link href="/account" className="hover:text-[var(--color-terra)]">
               {t('nav.account')}
@@ -36,6 +39,7 @@ export function Header() {
           </nav>
         </div>
       </div>
+      <ChannelBar />
       <StoreInfoBar />
     </header>
   );
