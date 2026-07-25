@@ -1,7 +1,35 @@
 import { useState } from 'react';
-import { TaskItem, endpointParams, resolveEndpoint } from '../api/bff';
+import { TaskItem, QueryParam, buildQuery, endpointParams, resolveEndpoint } from '../api/bff';
 import { methodColor, tierClasses } from '../lib/ui';
-import { Check, Lightbulb, TriangleAlert, Info, ListChecks } from '../lib/icons';
+import { Check, Lightbulb, TriangleAlert, Info, ListChecks, X } from '../lib/icons';
+
+/** Params the catalog reads understand — offered as quick-add chips in the Try It playground. */
+const CONTEXT_PARAMS = ['locale', 'priceCurrency', 'priceCountry', 'priceChannel', 'priceCustomerGroup'];
+const PARAM_HINTS: Record<string, string> = {
+  locale: 'en-US',
+  priceCurrency: 'USD',
+  priceCountry: 'US',
+  priceChannel: '<channel key>',
+  priceCustomerGroup: '<group id>',
+};
+
+/**
+ * Default query for an endpoint so the Canvas call matches what the storefront sends
+ * (en-US / USD / US) — otherwise the BFF falls back to the first-available locale and a null price,
+ * which looks broken next to the storefront. Product reads get full price-selection context; the
+ * category tree gets a locale; everything else starts empty (and can be added freely).
+ */
+function seedQuery(endpoint: string): QueryParam[] {
+  if (/\bproducts\b/.test(endpoint)) {
+    return [
+      { key: 'locale', value: 'en-US' },
+      { key: 'priceCurrency', value: 'USD' },
+      { key: 'priceCountry', value: 'US' },
+    ];
+  }
+  if (/\bcategories\b/.test(endpoint)) return [{ key: 'locale', value: 'en-US' }];
+  return [];
+}
 
 /** Main panel: full detail of the selected task + Try It. */
 export function TaskDetail({
@@ -19,9 +47,16 @@ export function TaskDetail({
 }) {
   const params = endpointParams(task.endpoint);
   const [values, setValues] = useState<Record<string, string>>({});
-  const resolved = resolveEndpoint(task.endpoint, values);
+  const [query, setQuery] = useState<QueryParam[]>(() => seedQuery(task.endpoint));
+  const resolved = resolveEndpoint(task.endpoint, values) + buildQuery(query);
   const missing = params.filter((p) => !(values[p] ?? '').trim());
   const mc = methodColor(task.httpMethod);
+
+  const addParam = (key = '') =>
+    setQuery((q) => (key && q.some((r) => r.key === key) ? q : [...q, { key, value: '' }]));
+  const setParam = (i: number, patch: Partial<QueryParam>) =>
+    setQuery((q) => q.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const removeParam = (i: number) => setQuery((q) => q.filter((_, idx) => idx !== i));
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
@@ -118,6 +153,62 @@ export function TaskDetail({
           </div>
         </Section>
       ) : null}
+
+      <Section title="Query parameters">
+        <p className="mb-2 text-xs leading-relaxed text-[var(--color-text-muted)]">
+          Sent as the <code>?query</code>. Catalog reads use these for localization and price selection —{' '}
+          <code>locale</code> · <code>priceChannel</code> · <code>priceCountry</code> · <code>priceCurrency</code> ·{' '}
+          <code>priceCustomerGroup</code>. Edit them and <em>Try It</em> again to watch the effect: blank the
+          currency to see the price fall back to <code>—</code>, or change <code>locale</code> to switch the
+          name &amp; slug. Defaults match what the storefront sends.
+        </p>
+        <div className="space-y-2">
+          {query.map((row, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm">
+              <input
+                value={row.key}
+                onChange={(e) => setParam(i, { key: e.target.value })}
+                placeholder="param"
+                className="w-40 rounded-md border border-[var(--color-brd)] bg-[var(--color-bg-panel)] px-2 py-1.5 font-mono text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
+              />
+              <span className="text-[var(--color-text-muted)]">=</span>
+              <input
+                value={row.value}
+                onChange={(e) => setParam(i, { value: e.target.value })}
+                placeholder={PARAM_HINTS[row.key] ?? 'value'}
+                className="flex-1 rounded-md border border-[var(--color-brd)] bg-[var(--color-bg-panel)] px-2 py-1.5 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
+              />
+              <button
+                onClick={() => removeParam(i)}
+                aria-label={`Remove ${row.key || 'parameter'}`}
+                className="rounded-md p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-card)] hover:text-[var(--color-text)]"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+          {query.length === 0 ? (
+            <p className="text-xs text-[var(--color-text-muted)]">No query parameters — add one below.</p>
+          ) : null}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => addParam()}
+            className="rounded-md border border-[var(--color-brd-light)] px-2.5 py-1 text-xs font-medium hover:border-[var(--color-violet)]"
+          >
+            + Add parameter
+          </button>
+          {CONTEXT_PARAMS.filter((p) => !query.some((r) => r.key === p)).map((p) => (
+            <button
+              key={p}
+              onClick={() => addParam(p)}
+              className="rounded-full border border-[var(--color-brd)] px-2.5 py-1 font-mono text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-teal)] hover:text-[var(--color-teal-light)]"
+            >
+              + {p}
+            </button>
+          ))}
+        </div>
+      </Section>
 
       <div className="flex flex-wrap items-center gap-3">
         <button

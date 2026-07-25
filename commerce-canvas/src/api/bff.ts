@@ -153,3 +153,22 @@ export function resolveEndpoint(endpoint: string, params: Record<string, string>
 export function endpointParams(endpoint: string): string[] {
   return [...endpoint.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
 }
+
+/** One editable `?key=value` row for the Try It query-string playground. */
+export interface QueryParam {
+  key: string;
+  value: string;
+}
+
+/**
+ * Build a `?a=1&b=2` query string from editable rows. Keys and values are URL-encoded so a
+ * participant-typed value can't inject an extra path segment, query, or authority into the endpoint
+ * {@link tryEndpoint} fetches. Rows with a blank *key* are skipped; a blank *value* is kept on
+ * purpose (send e.g. `priceCurrency=` to see the no-currency → no-price fallback).
+ */
+export function buildQuery(params: QueryParam[]): string {
+  const parts = params
+    .filter((p) => p.key.trim() !== '')
+    .map((p) => `${encodeURIComponent(p.key.trim())}=${encodeURIComponent(p.value)}`);
+  return parts.length ? `?${parts.join('&')}` : '';
+}
