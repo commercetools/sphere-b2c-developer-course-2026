@@ -62,15 +62,16 @@ public class CatalogService {
 
     public List<ProductSummary> listProducts(String locale, PriceSelection price) {
         // PLP: Product Projections list with price selection; the mapper resolves localized fields to
-        // `locale` and reads the selected `price` (in the requested currency, else "—").
+        // `locale` and reads the selected `price` (in the requested currency, else "—"). A bundle has
+        // no own price, so its card price is the rolled-up component total (see summaryWithBundleRollup).
         PriceSelection resolved = resolve(price);
         return productRepository.findAll(resolved).stream()
-                .map(pp -> CatalogMapper.toSummary(pp, locale, currencyOf(price)))
+                .map(pp -> summaryWithBundleRollup(pp, locale, price))
                 .toList();
     }
 
     public ProductSummary getProduct(String key, String locale, PriceSelection price) {
-        return CatalogMapper.toSummary(productRepository.findByKey(key, resolve(price)), locale, currencyOf(price));
+        return summaryWithBundleRollup(productRepository.findByKey(key, resolve(price)), locale, price);
     }
 
     public List<CategorySummary> listCategories(String locale) {
@@ -91,7 +92,7 @@ public class CatalogService {
         }
         List<String> subtreeIds = subtreeIds(start.getId(), all);
         return productRepository.findByCategory(subtreeIds, resolve(price)).stream()
-                .map(pp -> CatalogMapper.toSummary(pp, locale, currencyOf(price)))
+                .map(pp -> summaryWithBundleRollup(pp, locale, price))
                 .toList();
     }
 
@@ -138,6 +139,39 @@ public class CatalogService {
         // component order, and roll up the total price (sum of the components' selected prices). A
         // non-bundle product returns isBundle=false with no components. See session-tasks-detailed.md.
         throw new TaskNotImplementedException("2.7");
+    }
+
+    /**
+     * Summary price for the PLP card and PDP headline. Precedence:
+     * <ol>
+     *   <li><b>Own price</b> — if the product's master variant has a selected price, use it. This
+     *       covers ordinary products AND a bundle that has been given a real price (e.g. later
+     *       materialized by a Connect connector) — that price is authoritative and discountable.</li>
+     *   <li><b>Rolled-up total</b> — a BUNDLE with <i>no</i> own price has its summary price computed
+     *       on read as the roll-up of its components, reusing {@link #bundle} (task 2.7). Implement 2.7
+     *       and the PDP bundle section, PDP headline, and PLP card light up together; until then this
+     *       degrades to "—".</li>
+     *   <li><b>None</b> — otherwise null, and the storefront shows "—".</li>
+     * </ol>
+     *
+     * <p>Roadmap: a Connect connector can MATERIALIZE the roll-up as the bundle's own Standalone price
+     * (on component {@code PriceChanged} / bundle {@code ProductPublished}) — after which branch&nbsp;1
+     * serves it, the per-read roll-up stops, and Product Discounts (e.g. 10% off bundles) apply.
+     */
+    private ProductSummary summaryWithBundleRollup(ProductProjection product, String locale, PriceSelection price) {
+        ProductSummary summary = CatalogMapper.toSummary(product, locale, currencyOf(price));
+        if (summary.price() != null) {
+            return summary; // own price wins — ordinary product, or a bundle with a materialized price
+        }
+        if (CatalogMapper.componentIds(product).isEmpty()) {
+            return summary; // not a bundle → nothing to roll up ("—")
+        }
+        try {
+            Money total = bundle(product.getKey(), locale, price).totalPrice(); // reuse 2.7's roll-up
+            return new ProductSummary(summary.key(), summary.name(), summary.slug(), total, summary.imageUrl());
+        } catch (RuntimeException e) {
+            return summary; // bundle resolution unavailable yet (e.g. before task 2.7) → "—"
+        }
     }
 
     /** The category id plus all of its descendant ids (breadth-first over parent links). */
