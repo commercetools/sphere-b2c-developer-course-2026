@@ -28,10 +28,15 @@ public class ApproachRules {
                         List.of("stores"), List.of("stores"), 2, Map.of()),
 
                 // ---- Session 2 · catalog ----
-                rule("catalog", "Session 2", 1, // List products (PLP)
-                        List.of("product-projections"), List.of("product-projections"), 1, Map.of()),
-                rule("catalog", "Session 2", 2, // Get product by key — must be a by-key lookup, not fetch-all+filter
-                        List.of("product-projections"), List.of("product-projections"), 1, Map.of(), List.of("key=")),
+                rule("catalog", "Session 2", 1, // List products (PLP) — must select the shopper's CONTEXTUAL price
+                        List.of("product-projections"), List.of("product-projections"), 1,
+                        Map.of("product-projections",
+                                List.of("priceCurrency", "priceCountry", "priceChannel"))),
+                rule("catalog", "Session 2", 2, // Get product by key — by-key lookup + contextual price
+                        List.of("product-projections"), List.of("product-projections"), 1,
+                        Map.of("product-projections",
+                                List.of("priceCurrency", "priceCountry", "priceChannel")),
+                        List.of("key=")),
                 rule("catalog", "Session 2", 3, // List categories
                         List.of("categories"), List.of("categories"), 1, Map.of()),
                 rule("catalog", "Session 2", 4, // Browse by category (T2): resolve category + filtered query
