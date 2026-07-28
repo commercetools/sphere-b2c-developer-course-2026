@@ -8,7 +8,6 @@ import com.lifestylehomecorp.training.telemetry.TaskSignal;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -110,15 +109,27 @@ class ApproachEvaluatorTest {
     }
 
     @Test
-    void listProducts_task21_singleProjectionsCall_isOk() {
-        ApproachExpectation task21 = new ApproachExpectation(
-                "catalog.Session 2.1", List.of("product-projections"),
-                List.of("product-projections"), 1, Map.of(), List.of());
+    void listProducts_task21_withFullPriceContext_isOk() {
+        // one projections call carrying the full contextual price selection
+        ApproachExpectation task21 = new ApproachRules().forTask("catalog.Session 2.1");
 
-        TaskSignal signal = evaluator.evaluate(task21,
-                List.of(get("product-projections", "staged=false&limit=20")));
+        TaskSignal signal = evaluator.evaluate(task21, List.of(get("product-projections",
+                "staged=false&limit=20&priceCurrency=EUR&priceCountry=DE&priceChannel=abc123")));
 
         assertThat(signal.status()).isEqualTo(TaskSignal.OK);
+    }
+
+    @Test
+    void listProducts_task21_currencyAndCountryOnly_flagsMissingChannelPrice() {
+        // the skill-typical output: priceCurrency + priceCountry but no channel — an arbitrary,
+        // possibly-wrong price for the shopper's store. Passes "does it work?", must still flag.
+        ApproachExpectation task21 = new ApproachRules().forTask("catalog.Session 2.1");
+
+        TaskSignal signal = evaluator.evaluate(task21, List.of(get("product-projections",
+                "staged=false&limit=20&priceCurrency=EUR&priceCountry=DE")));
+
+        assertThat(signal.status()).isEqualTo(TaskSignal.FLAGGED);
+        assertThat(signal.flags()).anyMatch(f -> f.contains("missing-predicate: priceChannel"));
     }
 
     // ---- get-by-key gap (2.2): fetch-all+filter hits the same resource head as the by-key GET ----
@@ -128,7 +139,8 @@ class ApproachEvaluatorTest {
     @Test
     void getByKey_task22_properByKeyLookup_isOk() {
         TaskSignal signal = evaluator.evaluate(task22,
-                List.of(get("product-projections/key=chair-01", "staged=false")));
+                List.of(get("product-projections/key=chair-01",
+                        "staged=false&priceCurrency=EUR&priceCountry=DE&priceChannel=abc123")));
 
         assertThat(signal.status()).isEqualTo(TaskSignal.OK);
     }
