@@ -29,10 +29,9 @@ public class StoreController {
             module = "project", session = "Session 1", taskNumber = 2,
             title = "List stores", tier = "T1", capability = "distribution.stores",
             description = "Implement one repository method — CtStoreRepository.findAll() in the project "
-                    + "module's infrastructure layer — returning the raw SDK List<Store> (expand "
-                    + "distributionChannels[*] to surface channel keys). StoreService maps it so GET "
-                    + "/api/stores lists the project's Stores for the storefront's store bar and region "
-                    + "switcher.",
+                    + "module's infrastructure layer — returning the raw SDK List<Store>. StoreService maps "
+                    + "it so GET /api/stores lists the project's Stores — with each store's "
+                    + "distribution-channel keys — for the storefront's store bar and region switcher.",
             hint = "Docs: Stores — a Store scopes catalog, channels and settings to a market "
                     + "(docs.commercetools.com/api/projects/stores).")
     @GetMapping("/api/stores")

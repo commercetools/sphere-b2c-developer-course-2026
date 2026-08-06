@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { TaskItem, QueryParam, buildQuery, endpointParams, resolveEndpoint } from '../api/bff';
-import { methodColor, tierClasses } from '../lib/ui';
+import { methodColor, taskRef, tierClasses } from '../lib/ui';
 import { Check, Lightbulb, TriangleAlert, Info, ListChecks, X } from '../lib/icons';
 
 /** Params the catalog reads understand — offered as quick-add chips in the Try It playground. */
@@ -14,21 +14,73 @@ const PARAM_HINTS: Record<string, string> = {
 };
 
 /**
- * Default query for an endpoint so the Canvas call matches what the storefront sends
- * (en-US / USD / US) — otherwise the BFF falls back to the first-available locale and a null price,
- * which looks broken next to the storefront. Product reads get full price-selection context; the
- * category tree gets a locale; everything else starts empty (and can be added freely).
+ * Default query for a task so the Canvas call matches what the storefront sends (en-US / USD / US) —
+ * otherwise the BFF falls back to the first-available locale and a null price, which looks broken next
+ * to the storefront. Keyed on the **capability** (not the endpoint), because 2.2 and 3.2 share
+ * `/api/products/{key}` — only 3.2 (the in-store PDP) is store-scoped. Every seeded value is editable.
+ *
+ * - **Store-scoped reads** (`search.*` + `catalog.pdpInStore`) → default `store=b2c-retail-store` (the
+ *   whole-catalogue store, so cards always render) + price context; change the store to see the
+ *   assortment switch.
+ * - **Catalog product reads** → full price-selection context · **category tree** → a locale · else empty.
  */
-function seedQuery(endpoint: string): QueryParam[] {
-  if (/\bproducts\b/.test(endpoint)) {
-    return [
-      { key: 'locale', value: 'en-US' },
-      { key: 'priceCurrency', value: 'USD' },
-      { key: 'priceCountry', value: 'US' },
-    ];
+function seedQuery(task: TaskItem): QueryParam[] {
+  const locale: QueryParam = { key: 'locale', value: 'en-US' };
+  const priced: QueryParam[] = [
+    locale,
+    { key: 'priceCurrency', value: 'USD' },
+    { key: 'priceCountry', value: 'US' },
+  ];
+  const cap = task.capability;
+  // Store-scoped discovery + in-store reads: demo store + price context, PLUS the one query param each
+  // endpoint needs to route to ITS task (?q= / ?category= / ?dynamic= / ?filter=). Without it the call
+  // matches a sibling endpoint and the wrong task completes (e.g. no ?filter → hits 3.6, not 3.7).
+  if (cap.startsWith('search.') || cap === 'catalog.pdpInStore') {
+    const base: QueryParam[] = [{ key: 'store', value: 'b2c-retail-store' }, ...priced];
+    switch (cap) {
+      case 'search.fullText':
+        return [...base, { key: 'q', value: 'chair' }];
+      case 'search.byCategory':
+        return [...base, { key: 'category', value: 'furniture' }];
+      case 'search.facetsConfig':
+        return [...base, { key: 'dynamic', value: 'true' }];
+      case 'search.postFilter':
+        return [...base, { key: 'filter', value: 'colour:white' }];
+      default:
+        return base; // search.query / search.facets / search.plpV2 / catalog.pdpInStore
+    }
   }
-  if (/\bcategories\b/.test(endpoint)) return [{ key: 'locale', value: 'en-US' }];
+  if (cap === 'distribution.store') return [{ key: 'store', value: 'b2c-retail-store' }];
+  if (cap === 'catalog.categories') return [locale];
+  if (cap.startsWith('catalog.')) return priced;
+  // Fallback for anything unmapped: the old endpoint heuristic.
+  if (/\bproducts\b/.test(task.endpoint)) return priced;
+  if (/\bcategories\b/.test(task.endpoint)) return [locale];
   return [];
+}
+
+/**
+ * Default PATH params ({key}/{slug}) per task so a by-key / by-slug read resolves against real seed data
+ * instead of an empty input. Every value is a real key/slug from the b2c-developer-2026 sample catalogue
+ * and stays editable in the playground.
+ */
+function seedValues(task: TaskItem): Record<string, string> {
+  switch (task.capability) {
+    case 'distribution.storeByKey':
+      return { key: 'b2c-retail-store' };
+    case 'catalog.pdp':
+    case 'catalog.pdpInStore':
+    case 'catalog.variantMatrix':
+      return { key: 'charlie-armchair' };
+    case 'catalog.categoryProducts':
+      return { key: 'furniture' };
+    case 'catalog.bundles':
+      return { key: 'bedding-bundle' };
+    case 'catalog.localeSlugs':
+      return { slug: 'charlie-armchair' };
+    default:
+      return {};
+  }
 }
 
 /** Main panel: full detail of the selected task + Try It. */
@@ -46,8 +98,8 @@ export function TaskDetail({
   onTry: (task: TaskItem, method: string, endpoint: string) => void;
 }) {
   const params = endpointParams(task.endpoint);
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [query, setQuery] = useState<QueryParam[]>(() => seedQuery(task.endpoint));
+  const [values, setValues] = useState<Record<string, string>>(() => seedValues(task));
+  const [query, setQuery] = useState<QueryParam[]>(() => seedQuery(task));
   const resolved = resolveEndpoint(task.endpoint, values) + buildQuery(query);
   const missing = params.filter((p) => !(values[p] ?? '').trim());
   const mc = methodColor(task.httpMethod);
@@ -70,6 +122,7 @@ export function TaskDetail({
             {task.httpMethod}
           </span>
           <h1 className="text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
+            <span className="text-[var(--color-text-muted)]">{taskRef(task)} </span>
             {task.title}
           </h1>
           <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${tierClasses(task.tier)}`}>

@@ -32,6 +32,10 @@
         </dependency>
         <dependency>
             <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>product-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
             <artifactId>training</artifactId>
         </dependency>
         <dependency>

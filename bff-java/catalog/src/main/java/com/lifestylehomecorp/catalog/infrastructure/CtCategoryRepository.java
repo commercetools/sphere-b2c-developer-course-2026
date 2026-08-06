@@ -23,9 +23,9 @@ public class CtCategoryRepository implements CategoryRepository {
 
     @Override
     public List<Category> findAll() {
-        // TODO (Task 2.3): implement the category-list SDK call, returning the raw SDK List<Category>
-        // (page it server-side). The service resolves each name/slug LocalizedString. See the
-        // @TaskDescription hint + session-tasks-detailed.md; ground it on the commercetools-knowledge MCP.
+        // TODO (Task 2.3): return the project's categories as a raw SDK List<Category> for the
+        // storefront's category navigation. Goal + docs in the @TaskDescription; also
+        // session-tasks-detailed.md; ground it on the commercetools-knowledge MCP.
         throw new TaskNotImplementedException("2.3");
     }
 }

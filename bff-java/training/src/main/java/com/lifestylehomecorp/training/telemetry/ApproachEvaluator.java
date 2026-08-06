@@ -56,7 +56,10 @@ public class ApproachEvaluator {
             for (String needle : needles) {
                 boolean seen = calls.stream()
                         .filter(c -> c.head().equals(head))
-                        .anyMatch(c -> decode(c.query()).contains(needle));
+                        // Match in the query string OR the captured body: for Product Search the shape
+                        // (store scope, price context, facets, postFilter) lives in the GraphQL body.
+                        .anyMatch(c -> (decode(c.query()) + " " + (c.body() == null ? "" : c.body()))
+                                .contains(needle));
                 if (!seen) {
                     flags.add("missing-predicate: " + needle);
                 }

@@ -71,10 +71,18 @@ export function ProductCard({ product }: { product: ProductView }) {
           <span className="inline-flex items-center gap-0.5 align-[-2px]">{[0, 1, 2, 3].map((i) => (<Star key={i} size={12} filled />))}<Star size={12} /></span> <span className="text-[var(--color-charcoal-light)]">(24)</span>
         </div>
         <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-          <span className="font-semibold">
-            {product.price
-              ? formatMoney(product.price.centAmount, product.price.currencyCode, locale)
-              : '—'}
+          <span className="flex items-baseline gap-1.5">
+            <span className="font-semibold">
+              {product.price
+                ? formatMoney(product.price.centAmount, product.price.currencyCode, locale)
+                : '—'}
+            </span>
+            {product.originalPrice &&
+            (!product.price || product.originalPrice.centAmount > product.price.centAmount) ? (
+              <span className="text-xs text-[var(--color-charcoal-light)] line-through">
+                {formatMoney(product.originalPrice.centAmount, product.originalPrice.currencyCode, locale)}
+              </span>
+            ) : null}
           </span>
           {pdpUnlocked ? (
             <AddToCartButton />

@@ -54,22 +54,40 @@ export function flattenTasks(modules: ModuleGroup[]): TaskItem[] {
   return modules.flatMap((m) => m.sessions.flatMap((s) => s.tasks));
 }
 
+/** The numeric part of a session label ("Session 2" → 2); unlabelled sessions sort last. */
+export function sessionNumber(session: string): number {
+  const m = /(\d+)/.exec(session ?? '');
+  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+}
+
+/** The canonical task reference "<session>.<taskNumber>", e.g. "2.1" — the id used across the docs. */
+export function taskRef(task: TaskItem): string {
+  const m = /(\d+)/.exec(task.session ?? '');
+  return m ? `${m[1]}.${task.taskNumber}` : String(task.taskNumber);
+}
+
 export function orderedSessions(modules: ModuleGroup[]): string[] {
   const seen: string[] = [];
   for (const m of modules) for (const s of m.sessions) if (!seen.includes(s.session)) seen.push(s.session);
-  return seen;
+  return seen.sort((a, b) => sessionNumber(a) - sessionNumber(b));
 }
 
-/** Group all tasks by session label (ordered by first appearance) for the sidebar accordion. */
+/**
+ * Group all tasks by session for the sidebar accordion, in logical order: sessions ascending
+ * (Session 1 → 2 → 3) and, within each, tasks by their number (so 3.1 → 3.2 → 3.3 … regardless of
+ * which module a task lives in — e.g. the in-store PDP 3.2 sits in `catalog` but still lands between
+ * 3.1 and 3.3).
+ */
 export function groupBySession(modules: ModuleGroup[]): { session: string; tasks: TaskItem[] }[] {
-  const order: string[] = [];
   const map = new Map<string, TaskItem[]>();
   for (const t of flattenTasks(modules)) {
-    if (!map.has(t.session)) {
-      map.set(t.session, []);
-      order.push(t.session);
-    }
+    if (!map.has(t.session)) map.set(t.session, []);
     map.get(t.session)!.push(t);
   }
-  return order.map((session) => ({ session, tasks: map.get(session)! }));
+  return [...map.entries()]
+    .sort(([a], [b]) => sessionNumber(a) - sessionNumber(b))
+    .map(([session, tasks]) => ({
+      session,
+      tasks: [...tasks].sort((x, y) => x.taskNumber - y.taskNumber),
+    }));
 }

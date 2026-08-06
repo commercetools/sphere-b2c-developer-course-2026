@@ -31,6 +31,7 @@
         <module>platform</module>
         <module>project</module>
         <module>catalog</module>
+        <module>product-discovery</module>
         <module>training</module>
         <module>app</module>
     </modules>
@@ -89,6 +90,11 @@
             <dependency>
                 <groupId>com.lifestylehomecorp</groupId>
                 <artifactId>catalog</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lifestylehomecorp</groupId>
+                <artifactId>product-discovery</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

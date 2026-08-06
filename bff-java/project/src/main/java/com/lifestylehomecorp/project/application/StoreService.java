@@ -47,8 +47,9 @@ public class StoreService {
     public StoreContext storeContext(String storeKey) {
         // TODO (Task 1.4): resolve the active store/region. Pick the active store (from storeKey or a
         // default), decide the fallback when it's missing/unknown (NEVER throw), and build a
-        // StoreContext from the repository's SDK reads (reuse findAll() from 1.2 — channels already
-        // expanded). Decide: region = Store vs Channel vs project scope. See session-tasks-detailed.md.
+        // StoreContext from the repository's existing reads (reuse findAll() from 1.2). Decide:
+        // region = Store vs Channel vs project scope. Goal + decisions in the @TaskDescription;
+        // see session-tasks-detailed.md.
         throw new TaskNotImplementedException("1.4");
     }
 }

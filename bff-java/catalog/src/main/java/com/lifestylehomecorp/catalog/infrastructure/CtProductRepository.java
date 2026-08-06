@@ -1,7 +1,9 @@
 package com.lifestylehomecorp.catalog.infrastructure;
 
+import com.commercetools.api.client.ByProjectKeyInStoreKeyByStoreKeyProductProjectionsKeyByKeyGet;
 import com.commercetools.api.client.ProjectApiRoot;
 import com.commercetools.api.models.product.ProductProjection;
+import com.commercetools.api.models.product.ProductProjectionPagedQueryResponse;
 import com.lifestylehomecorp.catalog.application.PriceSelection;
 import com.lifestylehomecorp.catalog.application.ProductRepository;
 import com.lifestylehomecorp.platform.errors.TaskNotImplementedException;
@@ -33,20 +35,20 @@ public class CtProductRepository implements ProductRepository {
     }
 
     @Override
-    public List<ProductProjection> findAll(PriceSelection price) {
-        // TODO (Task 2.1): implement the Product Projections list SDK call (staged=false, server-side
-        // limit) and apply price selection YOURSELF from `price` — add withPriceCurrency, then
-        // withPriceCountry / withPriceChannel / withPriceCustomerGroup EACH only when that value is
-        // present. Passing only currency returns an arbitrary (non-contextual) price. Return the raw
-        // List<ProductProjection>. See the @TaskDescription hint + session-tasks-detailed.md; ground it
-        // on the commercetools-knowledge MCP.
+    public ProductProjectionPagedQueryResponse findAll(PriceSelection price) {
+        // TODO (Task 2.1): return the published products for the PLP as the raw SDK paged response
+        // (ProductProjectionPagedQueryResponse) — getBody() carries both results (this page) and total
+        // (all matching products, for "Total N products") — each carrying the price for the shopper's
+        // context (the PriceSelection param). Goal + docs in the @TaskDescription; also
+        // session-tasks-detailed.md; ground it on the commercetools-knowledge MCP.
         throw new TaskNotImplementedException("2.1");
     }
 
     @Override
-    public List<ProductProjection> findByCategory(List<String> categoryIds, PriceSelection price) {
+    public ProductProjectionPagedQueryResponse findByCategory(List<String> categoryIds, PriceSelection price) {
         // Filter to the given category ids (a category + its subtree) via a query predicate; a
         // reference-array field matches if ANY element's id is in the set. Price selection as above.
+        // Return the paged response so the category PLP carries its total too.
         var request = apiRoot.productProjections()
                 .get()
                 .withStaged(false)
@@ -59,7 +61,7 @@ public class CtProductRepository implements ProductRepository {
             if (!isBlank(price.channel())) request = request.withPriceChannel(price.channel());
             if (!isBlank(price.customerGroup())) request = request.withPriceCustomerGroup(price.customerGroup());
         }
-        return request.executeBlocking().getBody().getResults();
+        return request.executeBlocking().getBody();
     }
 
     @Override
@@ -108,12 +110,43 @@ public class CtProductRepository implements ProductRepository {
 
     @Override
     public ProductProjection findByKey(String key, PriceSelection price) {
-        // TODO (Task 2.2): fetch one product projection BY KEY (not id), current data, and apply price
-        // selection YOURSELF (same as 2.1 — each param only when present). Return the raw
-        // ProductProjection. A commercetools 404 surfaces as a NotFoundException → clean HTTP 404 via
-        // the platform error advice. See the @TaskDescription hint + session-tasks-detailed.md; ground
-        // it on the commercetools-knowledge MCP.
+        // TODO (Task 2.2): fetch ONE product BY KEY (not id) as a raw SDK ProductProjection for the PDP,
+        // carrying the price for the shopper's context. A commercetools 404 surfaces as a
+        // NotFoundException → clean HTTP 404 via the platform error advice. Goal + docs in the
+        // @TaskDescription; also session-tasks-detailed.md; ground it on the commercetools-knowledge MCP.
         throw new TaskNotImplementedException("2.2");
+    }
+
+    @Override
+    public ProductProjection findByKeyInStore(String storeKey, String key, PriceSelection price) {
+        // Task 3.2 (pre-built) — In-Store Product Projection BY KEY: scoped to the store's assortment.
+        // A product not in the store surfaces as a NotFoundException → HTTP 404 via the platform error
+        // advice. Price selection as above; withStaged(false) → current (published) data.
+        var request = withPrice(apiRoot.inStore(storeKey).productProjections().withKey(key).get()
+                .withStaged(false), price);
+        return request.executeBlocking().getBody();
+    }
+
+    // In-store price-selection helper (trainer-provided, for the pre-built Task 3.2 read). Applies each
+    // price-selection parameter only when present; commercetools then picks the best match by precedence
+    // and falls back to the base currency price. The in-store by-key request is its own generated builder
+    // type, so it needs its own overload.
+    private static ByProjectKeyInStoreKeyByStoreKeyProductProjectionsKeyByKeyGet withPrice(
+            ByProjectKeyInStoreKeyByStoreKeyProductProjectionsKeyByKeyGet request, PriceSelection price) {
+        if (price == null || isBlank(price.currency())) {
+            return request; // no currency → no price selection at all
+        }
+        request = request.withPriceCurrency(price.currency());
+        if (!isBlank(price.country())) {
+            request = request.withPriceCountry(price.country());
+        }
+        if (!isBlank(price.channel())) {
+            request = request.withPriceChannel(price.channel()); // channel id (resolved upstream)
+        }
+        if (!isBlank(price.customerGroup())) {
+            request = request.withPriceCustomerGroup(price.customerGroup()); // customer-group id
+        }
+        return request;
     }
 
     private static boolean isBlank(String s) {

@@ -9,12 +9,13 @@ import { usePreferences } from '@/context/preferences-context';
 import { ProductCard } from './ProductCard';
 import { SortDropdown } from './SortDropdown';
 import { FacetPanel } from './FacetPanel';
-import { ProductView } from './types';
+import { ProductPageView, ProductView } from './types';
 import { SAMPLE_PRODUCTS } from './samples';
 
 /**
- * The PLP. Gated on catalog.plp at the page level; inside, sort and facets are individually
- * gated (search.sort / search.facets) so those Tier-1/Tier-2 controls light up independently.
+ * The Session-2 PLP (catalog.plp). This is the pre-search fallback grid: it renders until the
+ * composed store-scoped search PLP (search.plpV2) unlocks, at which point PlpSwitch cuts over to
+ * SearchPlp. Sort/Filters show as locked affordances here that point at the Session-3 work.
  * When a `?category=<key>` is present, lists that category's products (incl. subcategories).
  */
 export function ProductGrid() {
@@ -33,15 +34,23 @@ export function ProductGrid() {
   const path = category
     ? `categories/${encodeURIComponent(category)}/products?${params.toString()}`
     : `products?${params.toString()}`;
-  const { data } = useSWR(path, (p) => bffGet<ProductView[]>(p));
-  // Live products when implemented; sample catalogue otherwise so the (dimmed) grid looks real.
-  const products = data && data.ok && data.data && data.data.length > 0 ? data.data : SAMPLE_PRODUCTS;
+  const { data } = useSWR(path, (p) => bffGet<ProductPageView>(p));
+  // Live envelope { products, total } when implemented; sample catalogue otherwise so the (dimmed)
+  // grid still looks real. Before 2.1 lands (501/empty) we fall back to samples and count those.
+  const envelope = data && data.ok && data.data && data.data.products?.length ? data.data : null;
+  const products = envelope ? envelope.products : SAMPLE_PRODUCTS;
+  const total = envelope ? envelope.total : products.length;
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <FacetPanel />
-        <SortDropdown value={sort} onChange={setSort} />
+        <p className="text-sm text-[var(--color-charcoal-light)]">
+          {envelope ? `Total ${total} product${total === 1 ? '' : 's'}` : 'Sample catalogue'}
+        </p>
+        <div className="flex items-center gap-3">
+          <FacetPanel />
+          <SortDropdown value={sort} onChange={setSort} capability="search.plpV2" />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         {products.map((p) => (
