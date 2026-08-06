@@ -4,8 +4,9 @@ Build a real storefront's backend — a **BFF** (Backend-for-Frontend) on commer
 method, with AI as your co-pilot**. As you implement each task, a capability unlocks and a section of
 the live **storefront** lights up.
 
-> **This release covers Sessions 1 & 2 — "Ignition" (Platform, SDK, Project & Stores) and "The
-> Catalogue" (Product & Category reads).** Later sessions add more modules to the same codebase.
+> **This release covers Sessions 1–3 — "Ignition" (Platform, SDK, Project & Stores), "The Catalogue"
+> (Product & Category reads), and "Find It" (store-scoped, faceted, searchable discovery via the Product
+> Search API over GraphQL).** Later sessions add more modules to the same codebase.
 
 ## Branches
 
