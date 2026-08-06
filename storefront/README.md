@@ -4,8 +4,9 @@ A Next.js storefront that consumes **your BFF** (never commercetools directly). 
 **capability-gated**: it stays locked until you implement the task that unlocks it — so the store
 literally comes alive as you build.
 
-> **Session 1:** you'll light up the **store-info bar** and the **region switcher**. Catalog sections
-> (PLP, PDP, …) unlock in later sessions.
+> **Sessions 1–3:** you'll light up the **store-info bar** and **region switcher** (S1), the **catalogue
+> PLP/PDP** (S2), and the **store-scoped, searchable, faceted PLP** — search box, filter rail, sort — that
+> the region switch re-scopes (S3). Later sessions unlock cart, checkout, and more.
 
 ## Run
 ```bash

@@ -3,8 +3,9 @@
 A layered ("hexagonal") Spring Boot **Backend-for-Frontend** for commercetools. This is where the
 course tasks live: you implement one SDK call at a time, and the storefront lights up.
 
-> **Sessions 1 & 2** — **Ignition** (Platform, SDK, Project & Stores) and **The Catalogue** (Product &
-> Category reads, with channel/country/currency price selection).
+> **Sessions 1–3** — **Ignition** (Platform, SDK, Project & Stores), **The Catalogue** (Product &
+> Category reads, with channel/country/currency price selection), and **Find It** (store-scoped discovery
+> via the Product Search API over GraphQL — search, facets, PLP).
 
 ## The shape (four layers)
 ```
@@ -20,6 +21,8 @@ service maps them to your `domain` models.
 - `platform` — shared kernel (the single `ProjectApiRoot` client, config, error advice). Don't edit.
 - `project` — the worked reference (`GET /api/project`) **plus your Session-1 Stores tasks**.
 - `catalog` — **your Session-2 tasks**: products (PLP/PDP), categories, variants, bundles, slug routing.
+- `product-discovery` — **your Session-3 tasks**: store-scoped Product Search over GraphQL — search,
+  full-text, category subtree, facets, PLP orchestration, postFilter.
 - `training` — task/progress tracking (powers Commerce Canvas). Don't edit.
 - `app` — the aggregator; runs the full BFF on **:8081**.
 
@@ -82,5 +85,8 @@ when compiled classes change — so you never run `mvn clean install` after a ta
 - **Session-2 tasks:** list products (PLP) + product by key (PDP) with price selection (channel +
   country + currency), list categories, browse-by-category subtree, variant matrix, bundle roll-up,
   and localized slug routing.
+- **Session-3 tasks:** store-scoped Product Search (GraphQL `productsSearch`) returning hydrated cards,
+  full-text (+fuzzy), category subtree, facets (colour + price range/slider), the composed PLP
+  (sort + pagination), and postFilter (stable facet counts) — plus the configurable-facets stretch.
 
 Stuck? The **`solution`** branch has the reference implementation — try it yourself first.
