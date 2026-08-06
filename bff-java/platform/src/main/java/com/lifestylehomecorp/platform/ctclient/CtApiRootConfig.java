@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Creates the single {@link ProjectApiRoot} bean for the whole application.
@@ -43,8 +44,11 @@ public class CtApiRootConfig {
                     try {
                         URI uri = request.getUri();
                         if (uri != null && apiHost != null && apiHost.equals(uri.getHost())) {
-                            ApproachContext.record(
-                                    request.getMethod() != null ? request.getMethod().name() : "", uri);
+                            String method = request.getMethod() != null ? request.getMethod().name() : "";
+                            // Capture the request body ONLY for GraphQL / Product Search calls — the
+                            // search shape (store scope, price context, facets, postFilter) lives in the
+                            // body, not the URL. Body only, never headers/credentials.
+                            ApproachContext.record(method, uri, searchBody(uri, request.getBody()));
                         }
                     } catch (RuntimeException ignored) {
                         // never let telemetry break the call
@@ -52,6 +56,22 @@ public class CtApiRootConfig {
                     return next.apply(request);
                 })
                 .build(props.getProjectKey());
+    }
+
+    /**
+     * The outbound request body decoded to a UTF-8 string, but ONLY for GraphQL / Product Search
+     * calls (path contains "/graphql" or "/products/search"); "" otherwise. Guards nulls and never
+     * consumes or alters the real request body (reads the already-materialized byte[]).
+     */
+    private static String searchBody(URI uri, byte[] body) {
+        if (body == null || body.length == 0 || uri.getPath() == null) {
+            return "";
+        }
+        String path = uri.getPath();
+        if (!path.contains("/graphql") && !path.contains("/products/search")) {
+            return "";
+        }
+        return new String(body, StandardCharsets.UTF_8);
     }
 
     private static String hostOf(String url) {

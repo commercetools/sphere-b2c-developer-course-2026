@@ -1,5 +1,6 @@
 package com.lifestylehomecorp.platform.errors;
 
+import com.commercetools.api.models.error.ErrorResponse;
 import io.vrap.rmf.base.client.ApiHttpException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +38,26 @@ public class CtErrorAdvice {
         if (status == null || upstream < 400) {
             status = HttpStatus.BAD_GATEWAY;
         }
-        return ResponseEntity.status(status).body(ApiError.of(status.value(), ex.getMessage()));
+        return ResponseEntity.status(status).body(ApiError.of(status.value(), commercetoolsMessage(ex, status)));
+    }
+
+    /**
+     * The clean, client-safe message for a commercetools API error — the {@code message} from the
+     * upstream {@link ErrorResponse} body (e.g. "The Resource with key 'x' was not found."), NOT
+     * {@link ApiHttpException#getMessage()}, which is the SDK's verbose diagnostic dump (full URL,
+     * correlation id, request/response headers, SDK/JVM versions). Falls back to the status reason
+     * phrase when the body isn't a parseable commercetools error.
+     */
+    private static String commercetoolsMessage(ApiHttpException ex, HttpStatus status) {
+        try {
+            ErrorResponse body = ex.getBodyAs(ErrorResponse.class);
+            if (body != null && body.getMessage() != null && !body.getMessage().isBlank()) {
+                return body.getMessage();
+            }
+        } catch (Exception ignored) {
+            // Body absent or not a commercetools ErrorResponse — fall back to a generic status message.
+        }
+        return status.getReasonPhrase();
     }
 
     /**

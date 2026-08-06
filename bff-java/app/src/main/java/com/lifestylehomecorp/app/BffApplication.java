@@ -1,6 +1,7 @@
 package com.lifestylehomecorp.app;
 
 import com.lifestylehomecorp.catalog.CatalogApplication;
+import com.lifestylehomecorp.discovery.DiscoveryApplication;
 import com.lifestylehomecorp.project.ProjectApplication;
 import com.lifestylehomecorp.training.TrainingApplication;
 import org.springframework.boot.SpringApplication;
@@ -21,7 +22,8 @@ import org.springframework.context.annotation.FilterType;
         basePackages = "com.lifestylehomecorp",
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
-                classes = {ProjectApplication.class, CatalogApplication.class, TrainingApplication.class}))
+                classes = {ProjectApplication.class, CatalogApplication.class,
+                        DiscoveryApplication.class, TrainingApplication.class}))
 public class BffApplication {
 
     public static void main(String[] args) {

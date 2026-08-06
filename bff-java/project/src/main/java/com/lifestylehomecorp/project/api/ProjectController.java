@@ -24,7 +24,7 @@ public class ProjectController {
             module = "project", session = "Session 1", taskNumber = 1,
             title = "Project settings", tier = "T1", capability = "project.info",
             description = "Implement one repository method — CtProjectRepository.fetch() in the project "
-                    + "module's infrastructure layer — returning the raw SDK Project (apiRoot.get()). "
+                    + "module's infrastructure layer — returning the raw SDK Project. "
                     + "ProjectService maps it to the domain so GET /api/project exposes the project's key, "
                     + "name, currencies, languages and countries — the settings the storefront reads to "
                     + "drive its locale and currency switchers.",

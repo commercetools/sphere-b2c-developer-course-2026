@@ -2,10 +2,12 @@ package com.lifestylehomecorp.catalog.application;
 
 import com.commercetools.api.models.category.Category;
 import com.commercetools.api.models.product.ProductProjection;
+import com.commercetools.api.models.product.ProductProjectionPagedQueryResponse;
 import com.commercetools.api.models.product.ProductVariant;
 import com.lifestylehomecorp.catalog.domain.Bundle;
 import com.lifestylehomecorp.catalog.domain.CategorySummary;
 import com.lifestylehomecorp.catalog.domain.Money;
+import com.lifestylehomecorp.catalog.domain.ProductPage;
 import com.lifestylehomecorp.catalog.domain.ProductSummary;
 import com.lifestylehomecorp.catalog.domain.VariantMatrix;
 import org.springframework.http.HttpStatus;
@@ -59,18 +61,31 @@ public class CatalogService {
         return price == null ? null : price.currency();
     }
 
-    public List<ProductSummary> listProducts(String locale, PriceSelection price) {
+    public ProductPage listProducts(String locale, PriceSelection price) {
         // PLP: Product Projections list with price selection; the mapper resolves localized fields to
         // `locale` and reads the selected `price` (in the requested currency, else "—"). A bundle has
         // no own price, so its card price is the rolled-up component total (see summaryWithBundleRollup).
+        // The paged response carries `total` (all matching products) for the "Total N products" count.
         PriceSelection resolved = resolve(price);
-        return productRepository.findAll(resolved).stream()
+        ProductProjectionPagedQueryResponse page = productRepository.findAll(resolved);
+        List<ProductSummary> products = page.getResults().stream()
                 .map(pp -> summaryWithBundleRollup(pp, locale, price))
                 .toList();
+        return new ProductPage(products, totalOf(page, products));
     }
 
     public ProductSummary getProduct(String key, String locale, PriceSelection price) {
         return summaryWithBundleRollup(productRepository.findByKey(key, resolve(price)), locale, price);
+    }
+
+    /**
+     * Task 3.2 (T1) — the in-store PDP: fetch a product by key within a store's assortment. Same
+     * mapping (and bundle roll-up) as {@link #getProduct}, but a product not carried by the store
+     * surfaces as a 404 rather than resolving — the store scope is enforced by commercetools, not by us.
+     */
+    public ProductSummary getProductInStore(String storeKey, String key, String locale, PriceSelection price) {
+        return summaryWithBundleRollup(
+                productRepository.findByKeyInStore(storeKey, key, resolve(price)), locale, price);
     }
 
     public List<CategorySummary> listCategories(String locale) {
@@ -83,16 +98,24 @@ public class CatalogService {
      * by key, walks the tree to collect the subtree ids, then filters products by that set. An unknown
      * key returns an empty list — never throws, so a bad link can't crash the storefront.
      */
-    public List<ProductSummary> categoryProducts(String key, String locale, PriceSelection price) {
+    public ProductPage categoryProducts(String key, String locale, PriceSelection price) {
         List<Category> all = categoryRepository.findAll();
         Category start = all.stream().filter(c -> key.equals(c.getKey())).findFirst().orElse(null);
         if (start == null) {
-            return List.of(); // unknown category → empty, deterministic fallback
+            return new ProductPage(List.of(), 0); // unknown category → empty, deterministic fallback
         }
         List<String> subtreeIds = subtreeIds(start.getId(), all);
-        return productRepository.findByCategory(subtreeIds, resolve(price)).stream()
+        ProductProjectionPagedQueryResponse page = productRepository.findByCategory(subtreeIds, resolve(price));
+        List<ProductSummary> products = page.getResults().stream()
                 .map(pp -> summaryWithBundleRollup(pp, locale, price))
                 .toList();
+        return new ProductPage(products, totalOf(page, products));
+    }
+
+    /** The full match count from a paged response, falling back to this page's size if absent. */
+    private static long totalOf(ProductProjectionPagedQueryResponse page, List<?> thisPage) {
+        Long total = page.getTotal();
+        return total != null ? total : thisPage.size();
     }
 
     /** Project locales, used as the slug fallback chain after the requested locale (mirrors project settings). */

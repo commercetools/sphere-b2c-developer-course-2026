@@ -1,7 +1,6 @@
 import { Hero } from '@/components/product/Hero';
 import { CategoryCards } from '@/components/product/CategoryCards';
-import { ProductGrid } from '@/components/product/ProductGrid';
-import { FeatureGate } from '@/components/ui/FeatureGate';
+import { PlpSwitch } from '@/components/product/PlpSwitch';
 import { CapabilityBoard } from '@/components/ui/CapabilityBoard';
 
 export default function HomePage() {
@@ -13,9 +12,9 @@ export default function HomePage() {
 
       <section className="space-y-4">
         <h2 className="font-display text-2xl">Featured</h2>
-        <FeatureGate capability="catalog.plp" title="Product listing">
-          <ProductGrid />
-        </FeatureGate>
+        {/* Catalogue grid (catalog.plp) until search.plpV2 unlocks, then the store-scoped discovery
+            PLP — flips live via the capabilities poll, no storefront change or reload needed. */}
+        <PlpSwitch />
       </section>
 
       {/* Training aid — tucked away so the storefront reads as a real shop. */}

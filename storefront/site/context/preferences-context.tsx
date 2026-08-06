@@ -28,6 +28,8 @@ export interface StoreLite {
 interface PreferencesValue {
   /** Active store name (once one is selected), else the project name / null. */
   storeName: string | null;
+  /** Active store KEY (once one is selected), else null. S3 discovery calls pass this as `?store=`. */
+  storeKey: string | null;
   /** Available language options (locales) — the active store's, else the project's. */
   languages: string[];
   /** Available currency options — the project's. */
@@ -80,6 +82,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const projectCountries = project?.countries?.length ? project.countries : FALLBACK_COUNTRIES;
 
   const [storeName, setStoreName] = useState<string | null>(null);
+  const [storeKey, setStoreKey] = useState<string | null>(null);
   const [storeLangs, setStoreLangs] = useState<string[] | null>(null);
   const [storeCountries, setStoreCountries] = useState<string[] | null>(null);
   const [currency, setCurrencyState] = useState<string>('');
@@ -121,6 +124,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
   const value: PreferencesValue = {
     storeName: storeName ?? project?.name ?? null,
+    storeKey,
     languages: languages.length ? languages : FALLBACK_LANGS,
     currencies,
     countries,
@@ -135,6 +139,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     setChannel: setChannelState,
     selectStore: (store) => {
       setStoreName(store.name);
+      setStoreKey(store.key);
       const langs = (store.languages ?? []).filter(isSupportedLocale);
       setStoreLangs(langs.length ? langs : null);
       if (langs.length) setLanguage(langs[0]); // store's default language

@@ -7,8 +7,10 @@ import useSWR from 'swr';
 import { bffGet } from '@/lib/bff/client';
 import { formatMoney } from '@/lib/utils';
 import { usePreferences } from '@/context/preferences-context';
+import { useCapability } from '@/context/capabilities-context';
 import { Link } from '@/i18n/routing';
 import { FeatureGate } from '@/components/ui/FeatureGate';
+import { Tag } from '@/components/ui/icons';
 import { AddToCartButton } from './AddToCartButton';
 import { VariantSelector } from './VariantSelector';
 import { BundleContents } from './BundleContents';
@@ -21,7 +23,8 @@ import { SAMPLE_PRODUCT } from './samples';
  */
 function ProductDetailInner({ slug }: { slug: string }) {
   const locale = useLocale();
-  const { currency, country, channel } = usePreferences();
+  const { currency, country, channel, storeKey, storeName } = usePreferences();
+  const { unlocked: pdpInStoreUnlocked } = useCapability('catalog.pdpInStore');
   const params = new URLSearchParams({ locale });
   if (currency) params.set('priceCurrency', currency);
   if (country) params.set('priceCountry', country);
@@ -38,8 +41,27 @@ function ProductDetailInner({ slug }: { slug: string }) {
     (p) => bffGet<ProductView>(p),
   );
   const keyResolved = byKey && byKey.ok && byKey.data ? byKey.data : null;
-  // Live product when resolved (by slug, else by key); a sample product otherwise so the PDP looks real.
-  const product = slugResolved ?? keyResolved ?? SAMPLE_PRODUCT;
+  // Global (project-wide) product, resolved by slug then by key.
+  const global = slugResolved ?? keyResolved ?? null;
+
+  // Task 3.2 (catalog.pdpInStore): when a store is active AND the in-store PDP is unlocked, re-read the
+  // product by key WITH ?store= so it comes from that store's assortment (and store-scoped price). If
+  // the product isn't in the store's assortment the BFF 404s — we surface a "not available" state
+  // rather than crash, and keep the global product visible.
+  const storeActive = Boolean(storeKey) && pdpInStoreUnlocked;
+  const inStoreParams = new URLSearchParams(params);
+  if (storeKey) inStoreParams.set('store', storeKey);
+  const inStoreKey = storeActive && global?.key ? global.key : null;
+  const inStore = useSWR(
+    inStoreKey ? `products/${inStoreKey}?${inStoreParams.toString()}` : null,
+    (p) => bffGet<ProductView>(p),
+  );
+  const inStoreProduct = inStore.data && inStore.data.ok && inStore.data.data ? inStore.data.data : null;
+  const notInStore = Boolean(inStoreKey) && Boolean(inStore.data) && inStore.data!.status === 404;
+
+  // Prefer the in-store product (store-scoped price/assortment) when available; else the global read;
+  // else a sample product so the PDP always looks real.
+  const product = inStoreProduct ?? global ?? SAMPLE_PRODUCT;
 
   return (
     <div>
@@ -95,6 +117,10 @@ function ProductDetailInner({ slug }: { slug: string }) {
             <span className="inline-flex items-center gap-0.5 align-[-2px]">{[0, 1, 2, 3].map((i) => (<Star key={i} size={14} filled />))}<Star size={14} /></span> <span className="text-[var(--color-charcoal-light)]">(24 reviews)</span>
           </div>
 
+          <FeatureGate capability="catalog.pdpInStore" title="In-store availability">
+            <StoreBadge storeName={storeName} storeActive={storeActive} notInStore={notInStore} />
+          </FeatureGate>
+
           <FeatureGate capability="pricing.resolve" title="Price (scoped + discounts)">
             <p className="text-2xl font-semibold">
               {product?.price
@@ -129,6 +155,41 @@ function ProductDetailInner({ slug }: { slug: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * In-store availability indicator (catalog.pdpInStore). Reflects the store-scoped PDP read: when a
+ * store is active it shows the store the product is being shown for, or a "not available in this
+ * store" state when the BFF 404s; with no store active it prompts to pick one.
+ */
+function StoreBadge({
+  storeName,
+  storeActive,
+  notInStore,
+}: {
+  storeName: string | null;
+  storeActive: boolean;
+  notInStore: boolean;
+}) {
+  if (!storeActive) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-cream-dark)] px-3 py-1 text-xs text-[var(--color-charcoal-light)]">
+        <Tag size={13} />Select a store for in-store availability
+      </span>
+    );
+  }
+  if (notInStore) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-cream-dark)] px-3 py-1 text-xs text-[var(--color-charcoal)]">
+        <Tag size={13} />Not available in {storeName ?? 'this store'}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-sage)]/15 px-3 py-1 text-xs text-[var(--color-charcoal)]">
+      <Tag size={13} />Available at {storeName ?? 'your store'}
+    </span>
   );
 }
 

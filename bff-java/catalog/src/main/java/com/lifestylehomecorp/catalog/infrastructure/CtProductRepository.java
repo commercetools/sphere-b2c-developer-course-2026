@@ -1,9 +1,11 @@
 package com.lifestylehomecorp.catalog.infrastructure;
 
+import com.commercetools.api.client.ByProjectKeyInStoreKeyByStoreKeyProductProjectionsKeyByKeyGet;
 import com.commercetools.api.client.ByProjectKeyProductProjectionsGet;
 import com.commercetools.api.client.ByProjectKeyProductProjectionsKeyByKeyGet;
 import com.commercetools.api.client.ProjectApiRoot;
 import com.commercetools.api.models.product.ProductProjection;
+import com.commercetools.api.models.product.ProductProjectionPagedQueryResponse;
 import com.lifestylehomecorp.catalog.application.PriceSelection;
 import com.lifestylehomecorp.catalog.application.ProductRepository;
 import org.springframework.stereotype.Repository;
@@ -34,23 +36,26 @@ public class CtProductRepository implements ProductRepository {
     }
 
     @Override
-    public List<ProductProjection> findAll(PriceSelection price) {
+    public ProductProjectionPagedQueryResponse findAll(PriceSelection price) {
         // Product Projections list: staged=false → current (published) data; limit pages SERVER-SIDE.
+        // Return the raw paged response — getBody() carries both results (this page) and total (all
+        // matching products), so the PLP can show "Total N products" even when the page is smaller.
         var request = withPrice(apiRoot.productProjections().get().withStaged(false).withLimit(20), price);
-        return request.executeBlocking().getBody().getResults();
+        return request.executeBlocking().getBody();
     }
 
     @Override
-    public List<ProductProjection> findByCategory(List<String> categoryIds, PriceSelection price) {
+    public ProductProjectionPagedQueryResponse findByCategory(List<String> categoryIds, PriceSelection price) {
         // Filter to the given category ids (a category + its subtree) via a query predicate; a
         // reference-array field matches if ANY element's id is in the set. Price selection as above.
+        // Paged response so the category PLP carries its total too.
         var request = withPrice(apiRoot.productProjections()
                 .get()
                 .withStaged(false)
                 .withLimit(100)
                 .withWhere("categories(id in :ids)")
                 .withPredicateVar("ids", categoryIds), price);
-        return request.executeBlocking().getBody().getResults();
+        return request.executeBlocking().getBody();
     }
 
     @Override
@@ -93,6 +98,16 @@ public class CtProductRepository implements ProductRepository {
         return request.executeBlocking().getBody();
     }
 
+    @Override
+    public ProductProjection findByKeyInStore(String storeKey, String key, PriceSelection price) {
+        // In-Store Product Projection BY KEY: scoped to the store's assortment. A product not in the
+        // store surfaces as a NotFoundException → HTTP 404 via the platform error advice. Price
+        // selection as above; withStaged(false) → current (published) data.
+        var request = withPrice(apiRoot.inStore(storeKey).productProjections().withKey(key).get()
+                .withStaged(false), price);
+        return request.executeBlocking().getBody();
+    }
+
     // --- price selection helpers (trainer-provided) ------------------------------------------------
     // Apply each price-selection parameter only when present. commercetools then picks the best match
     // by precedence and falls back to the base currency price. Two overloads because the list ("get")
@@ -118,6 +133,24 @@ public class CtProductRepository implements ProductRepository {
 
     private static ByProjectKeyProductProjectionsKeyByKeyGet withPrice(
             ByProjectKeyProductProjectionsKeyByKeyGet request, PriceSelection price) {
+        if (price == null || isBlank(price.currency())) {
+            return request;
+        }
+        request = request.withPriceCurrency(price.currency());
+        if (!isBlank(price.country())) {
+            request = request.withPriceCountry(price.country());
+        }
+        if (!isBlank(price.channel())) {
+            request = request.withPriceChannel(price.channel());
+        }
+        if (!isBlank(price.customerGroup())) {
+            request = request.withPriceCustomerGroup(price.customerGroup());
+        }
+        return request;
+    }
+
+    private static ByProjectKeyInStoreKeyByStoreKeyProductProjectionsKeyByKeyGet withPrice(
+            ByProjectKeyInStoreKeyByStoreKeyProductProjectionsKeyByKeyGet request, PriceSelection price) {
         if (price == null || isBlank(price.currency())) {
             return request;
         }

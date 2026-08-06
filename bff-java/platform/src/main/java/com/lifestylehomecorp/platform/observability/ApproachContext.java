@@ -59,12 +59,24 @@ public final class ApproachContext {
         return scope;
     }
 
+    /** Max captured body length — GraphQL search documents are small; cap defensively regardless. */
+    private static final int MAX_BODY = 4000;
+
     /**
      * Record one outbound commercetools call if a scope is open on this thread. The project key
      * (first path segment) is stripped so resources are stable, e.g. "product-projections". Never
      * throws — any failure is swallowed so telemetry can't affect the real call.
      */
     public static void record(String method, URI uri) {
+        record(method, uri, "");
+    }
+
+    /**
+     * As {@link #record(String, URI)}, but also stores the request {@code body} (for GraphQL /
+     * Product Search calls, where the query shape lives in the body, not the URL). The body is
+     * truncated to a safe cap. Never throws.
+     */
+    public static void record(String method, URI uri, String body) {
         try {
             Scope scope = CURRENT.get();
             if (scope == null || uri == null) {
@@ -73,10 +85,18 @@ public final class ApproachContext {
             scope.calls.add(new ObservedCall(
                     method == null ? "" : method,
                     resourceOf(uri),
-                    uri.getRawQuery() == null ? "" : uri.getRawQuery()));
+                    uri.getRawQuery() == null ? "" : uri.getRawQuery(),
+                    truncate(body)));
         } catch (RuntimeException ignored) {
             // Telemetry must never affect the request.
         }
+    }
+
+    private static String truncate(String body) {
+        if (body == null) {
+            return "";
+        }
+        return body.length() > MAX_BODY ? body.substring(0, MAX_BODY) : body;
     }
 
     /** Path with the leading "/{projectKey}" segment removed, e.g. "/proj/product-projections" -> "product-projections". */

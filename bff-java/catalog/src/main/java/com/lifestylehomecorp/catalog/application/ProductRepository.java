@@ -1,6 +1,7 @@
 package com.lifestylehomecorp.catalog.application;
 
 import com.commercetools.api.models.product.ProductProjection;
+import com.commercetools.api.models.product.ProductProjectionPagedQueryResponse;
 
 import java.util.List;
 
@@ -17,18 +18,30 @@ import java.util.List;
  */
 public interface ProductRepository {
 
-    /** Task 2.1 (T1) — list products for the PLP via Product Projections, with price selection. */
-    List<ProductProjection> findAll(PriceSelection price);
+    /**
+     * Task 2.1 (T1) — list products for the PLP via Product Projections, with price selection. Returns
+     * the raw SDK <em>paged</em> response: its {@code results} fill the grid and its {@code total} (the
+     * count of all matching products, not just this page) drives the storefront's "Total N products".
+     */
+    ProductProjectionPagedQueryResponse findAll(PriceSelection price);
 
     /** Task 2.2 (T1) — fetch one product by key for the PDP, with price selection. */
     ProductProjection findByKey(String key, PriceSelection price);
 
     /**
+     * Task 3.2 (T1) — fetch one product by key <em>in the context of a store</em> (in-store PDP),
+     * with price selection. Uses the In-Store Product Projection endpoint: a product NOT in the
+     * store's assortment surfaces as a commercetools 404 → {@code NotFoundException} → HTTP 404, so
+     * an out-of-store PDP is a clean not-found rather than a leak of a product the store doesn't sell.
+     */
+    ProductProjection findByKeyInStore(String storeKey, String key, PriceSelection price);
+
+    /**
      * Filter products to a set of category ids (a category + its subtree), with price selection.
      * Backs the category-filtered PLP (Task 2.4). Trainer-provided read; the category-subtree logic
-     * lives in the service.
+     * lives in the service. Returns the paged response so the category PLP carries its {@code total} too.
      */
-    List<ProductProjection> findByCategory(List<String> categoryIds, PriceSelection price);
+    ProductProjectionPagedQueryResponse findByCategory(List<String> categoryIds, PriceSelection price);
 
     /**
      * Find products whose {@code slug} in the given {@code locale} equals {@code slug} (0 or 1 result).

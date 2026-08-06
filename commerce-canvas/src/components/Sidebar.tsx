@@ -1,5 +1,5 @@
 import { ModuleGroup, TaskItem } from '../api/bff';
-import { groupBySession, methodColor, tierClasses } from '../lib/ui';
+import { groupBySession, methodColor, taskRef, tierClasses } from '../lib/ui';
 
 /** Left panel: tasks grouped by session, accordion style. Click a task to open it in the main panel. */
 export function Sidebar({
@@ -77,7 +77,7 @@ export function Sidebar({
                         }`}
                       />
                       <span className="min-w-0 flex-1 truncate">
-                        <span className="text-[var(--color-text-muted)]">{task.module}·{task.taskNumber} </span>
+                        <span className="font-semibold text-[var(--color-text-muted)]">{taskRef(task)} </span>
                         {task.title}
                       </span>
                       <span className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold ${tierClasses(task.tier)}`}>
