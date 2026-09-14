@@ -2,8 +2,8 @@ package com.lifestylehomecorp.project.infrastructure;
 
 import com.commercetools.api.client.ProjectApiRoot;
 import com.commercetools.api.models.store.Store;
-import com.lifestylehomecorp.platform.errors.TaskNotImplementedException;
 import com.lifestylehomecorp.project.application.StoreRepository;
+import com.lifestylehomecorp.platform.errors.TaskNotImplementedException;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

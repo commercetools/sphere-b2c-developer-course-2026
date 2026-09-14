@@ -123,12 +123,17 @@ export interface TryResult {
  * crafted "Try It" value can't turn this into a request to another origin. (Param values are also
  * encoded at {@link resolveEndpoint}.)
  */
-export async function tryEndpoint(method: string, endpoint: string): Promise<TryResult> {
+export async function tryEndpoint(method: string, endpoint: string, requestBody?: string): Promise<TryResult> {
   if (!endpoint.startsWith('/api/') || endpoint.includes('//') || /^[a-z]+:/i.test(endpoint)) {
     return { status: 0, ok: false, body: 'Refused: endpoint must be a relative /api path' };
   }
+  // A JSON body only goes out for write verbs, and only when one was supplied — a blank body on a
+  // GET/DELETE (or a query-param-only POST like 4.1) is sent as before, with no content-type.
+  const sendsBody = /^(POST|PUT|PATCH)$/i.test(method) && requestBody != null && requestBody.trim() !== '';
   try {
-    const res = await fetch(endpoint, { method, headers: { accept: 'application/json' } });
+    const headers: Record<string, string> = { accept: 'application/json' };
+    if (sendsBody) headers['content-type'] = 'application/json';
+    const res = await fetch(endpoint, { method, headers, ...(sendsBody ? { body: requestBody } : {}) });
     const text = await res.text();
     let body: unknown = text;
     try {

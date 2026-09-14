@@ -23,6 +23,7 @@
       - platform  : shared kernel (ProjectApiRoot bean, config, error advice). No controllers.
       - project   : fully-worked reference vertical slice (GET /api/project) through all layers.
       - catalog   : domain module with api/application/domain pre-wired; ONLY infrastructure stubbed (501).
+      - product-discovery, cart, customer : further domain modules (S3, S4, S5), same shape as catalog.
       - training  : course task/progress tracking (participants rarely touch).
       - app       : aggregator that assembles every module and runs the full BFF on :8081.
       Every domain module depends on `platform` ONLY, never on each other or on `app`.
@@ -32,6 +33,8 @@
         <module>project</module>
         <module>catalog</module>
         <module>product-discovery</module>
+        <module>cart</module>
+        <module>customer</module>
         <module>training</module>
         <module>app</module>
     </modules>
@@ -40,8 +43,14 @@
         <java.version>17</java.version>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Pin the commercetools Java SDK. Confirm the latest via the commercetools-knowledge MCP. -->
-        <commercetools.version>18.2.0</commercetools.version>
+        <!-- Pin the commercetools Java SDK. One property drives both the models jar
+             (commercetools-sdk-java-api) and the OkHttp client (commercetools-okhttp-client3),
+             so it must be a version where BOTH publish. The models jar has run ahead (20.x),
+             but commercetools-okhttp-client3 tops out at 19.11.0 — hence 19.11.0, the highest
+             stable release covering both. 19.x is also the first line to carry Recurring Orders
+             (LineItem recurrenceInfo) and InventoryMode.RESERVE_ON_CART, both needed in S4.
+             Confirm newer releases via the commercetools-knowledge MCP before bumping. -->
+        <commercetools.version>19.11.0</commercetools.version>
         <spring-dotenv.version>4.0.0</spring-dotenv.version>
         <springdoc.version>2.8.17</springdoc.version>
     </properties>
@@ -95,6 +104,16 @@
             <dependency>
                 <groupId>com.lifestylehomecorp</groupId>
                 <artifactId>product-discovery</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lifestylehomecorp</groupId>
+                <artifactId>cart</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lifestylehomecorp</groupId>
+                <artifactId>customer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

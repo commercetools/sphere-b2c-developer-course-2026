@@ -119,6 +119,9 @@ public class CatalogService {
         return total != null ? total : thisPage.size();
     }
 
+    /** Project locales, used as the slug fallback chain after the requested locale (mirrors project settings). */
+    private static final List<String> PROJECT_LOCALES = List.of("en-US", "en-GB", "de-DE");
+
     /**
      * Task 2.5 (T2) — resolve a product from a localized slug, with a locale fallback chain. Try the
      * requested locale first, then the project's other locales; the first slug match wins. When no
@@ -132,6 +135,13 @@ public class CatalogService {
         // product). Goal + decisions in the @TaskDescription; see session-tasks-detailed.md.
         throw new TaskNotImplementedException("2.5");
     }
+
+    /** Candidate variant axes (attribute → display label), in order — the participant's choice of
+     *  what's selectable. An attribute becomes an axis only if it varies across the variants. */
+    private static final List<String[]> AXIS_ATTRS = List.of(
+            new String[]{"color-label", "Colour"},
+            new String[]{"finish-label", "Finish"},
+            new String[]{"size", "Size"});
 
     /**
      * Task 2.6 (T2) — build the PDP variant selection matrix. The SDK read ({@code findByKey}) and the
@@ -170,15 +180,17 @@ public class CatalogService {
      *       covers ordinary products AND a bundle that has been given a real price (e.g. later
      *       materialized by a Connect connector) — that price is authoritative and discountable.</li>
      *   <li><b>Rolled-up total</b> — a BUNDLE with <i>no</i> own price has its summary price computed
-     *       on read as the roll-up of its components, reusing {@link #bundle} (task 2.7). Implement 2.7
-     *       and the PDP bundle section, PDP headline, and PLP card light up together; until then this
-     *       degrades to "—".</li>
+     *       on read as the roll-up of its components, reusing {@link #bundle} (task 2.7). So the same
+     *       roll-up that powers the PDP bundle section also becomes the card/headline price; implement
+     *       2.7 and both light up together.</li>
      *   <li><b>None</b> — otherwise null, and the storefront shows "—".</li>
      * </ol>
      *
-     * <p>Roadmap: a Connect connector can MATERIALIZE the roll-up as the bundle's own Standalone price
-     * (on component {@code PriceChanged} / bundle {@code ProductPublished}) — after which branch&nbsp;1
-     * serves it, the per-read roll-up stops, and Product Discounts (e.g. 10% off bundles) apply.
+     * <p>Only a bundle with no own price does the extra read. Roadmap: a Connect connector can
+     * MATERIALIZE the roll-up as the bundle's own Standalone price (on component {@code PriceChanged}
+     * / bundle {@code ProductPublished}) — after which branch&nbsp;1 serves it, the per-read roll-up
+     * stops, and Product Discounts (e.g. 10% off bundles) apply. Roll up per currency/country/channel
+     * and guard the write against re-triggering the connector.
      */
     private ProductSummary summaryWithBundleRollup(ProductProjection product, String locale, PriceSelection price) {
         ProductSummary summary = CatalogMapper.toSummary(product, locale, currencyOf(price));
@@ -190,7 +202,9 @@ public class CatalogService {
         }
         try {
             Money total = bundle(product.getKey(), locale, price).totalPrice(); // reuse 2.7's roll-up
-            return new ProductSummary(summary.key(), summary.name(), summary.slug(), total, summary.imageUrl());
+            return new ProductSummary(summary.key(), summary.name(), summary.slug(), total,
+                    summary.originalPrice(), summary.recurringPrice(), summary.recurringOriginalPrice(),
+                    summary.imageUrl());
         } catch (RuntimeException e) {
             return summary; // bundle resolution unavailable yet (e.g. before task 2.7) → "—"
         }

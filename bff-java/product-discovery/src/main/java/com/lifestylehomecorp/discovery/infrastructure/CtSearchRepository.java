@@ -16,7 +16,7 @@ import org.springframework.stereotype.Repository;
  *
  * <p>The document is assembled by {@link ProductSearchDocument} as an immutable {@link SearchExpr} tree
  * passed as typed GraphQL variables (the query text stays constant — no caller value is concatenated
- * into it), so your task here is just the SDK call.
+ * into it), so this repository is just the SDK call.
  */
 @Repository
 public class CtSearchRepository implements SearchRepository {

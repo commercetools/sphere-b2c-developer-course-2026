@@ -4,9 +4,11 @@ Build a real storefront's backend — a **BFF** (Backend-for-Frontend) on commer
 method, with AI as your co-pilot**. As you implement each task, a capability unlocks and a section of
 the live **storefront** lights up.
 
-> **This release covers Sessions 1–3 — "Ignition" (Platform, SDK, Project & Stores), "The Catalogue"
-> (Product & Category reads), and "Find It" (store-scoped, faceted, searchable discovery via the Product
-> Search API over GraphQL).** Later sessions add more modules to the same codebase.
+> **This release covers Sessions 1–5 — "Ignition" (Platform, SDK, Project & Stores), "The Catalogue"
+> (Product & Category reads), "Find It" (store-scoped, faceted, searchable discovery via the Product
+> Search API over GraphQL), "Fill the Basket" (the cart — the course's first write surface), and "Know
+> Your Customer" (identity: register, sign in, cart merge, customer pricing, the session boundary).**
+> Later sessions add more modules to the same codebase.
 
 ## Branches
 
@@ -57,6 +59,7 @@ cd storefront/site && npm install && npm run dev
 1. Open **Commerce Canvas**, pick the next task.
 2. Implement the **one stubbed method** in `bff-java` — **ground it on the Knowledge MCP; never guess the API.**
 3. Hit **Try It** in Canvas → the endpoint returns `200` → the capability unlocks → the storefront section lights up.
+   *(From Session 4 the tasks are **writes** — Try It sends a pre-filled JSON body you can edit.)*
 4. **Explain it back** in your own words. Stuck? compare with the `solution` branch.
 
 Per-project detail: [`bff-java/README.md`](bff-java/README.md) · [`commerce-canvas/README.md`](commerce-canvas/README.md) · [`storefront/README.md`](storefront/README.md).

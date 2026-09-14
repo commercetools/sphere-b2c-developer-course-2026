@@ -50,6 +50,17 @@ function seedQuery(task: TaskItem): QueryParam[] {
         return base; // search.query / search.facets / search.plpV2 / catalog.pdpInStore
     }
   }
+  // Session 4 write tasks. 4.1 create takes NO body — it reads the cart context from query params
+  // (currency / country, optional store); seed them so the call is self-explanatory. The recurring add
+  // shares POST /api/cart/line-items with 4.2, distinguished only by ?recurring — without it the call
+  // routes to 4.2 (the plain add) and the wrong task completes.
+  if (cap === 'cart.create') return [{ key: 'currency', value: 'EUR' }, { key: 'country', value: 'DE' }];
+  if (cap === 'cart.recurring') return [{ key: 'recurring', value: 'true' }];
+  // Session 5. 5.3 shares POST /api/customers/login with 5.2, distinguished only by ?mergeMode — without
+  // it the call routes to 5.2 (the plain sign-in) and the wrong task completes. 5.6 echoes the price
+  // context the catalogue applies, so seed the same currency / country the storefront sends.
+  if (cap === 'customer.cartMerge') return [{ key: 'mergeMode', value: 'MergeWithExistingCustomerCart' }];
+  if (cap === 'customer.groups') return [{ key: 'priceCurrency', value: 'USD' }, { key: 'priceCountry', value: 'US' }];
   if (cap === 'distribution.store') return [{ key: 'store', value: 'b2c-retail-store' }];
   if (cap === 'catalog.categories') return [locale];
   if (cap.startsWith('catalog.')) return priced;
@@ -83,6 +94,64 @@ function seedValues(task: TaskItem): Record<string, string> {
   }
 }
 
+/**
+ * Default JSON request body per write task (Session 4 onward), so a POST/PUT/PATCH is demoable straight
+ * from Try It. Values are real keys/SKUs/codes from the b2c-developer-2026 sample data and stay editable.
+ * Tasks that take only query params (e.g. 4.1 create) return '' — no body is sent.
+ */
+function seedBody(task: TaskItem): string {
+  const j = (o: unknown) => JSON.stringify(o, null, 2);
+  switch (task.capability) {
+    case 'cart.lineItems':
+      return j({ sku: 'CARM-023', quantity: 1 });
+    case 'cart.recurring':
+      return j({ sku: 'CARM-023' });
+    case 'cart.bundles':
+      return j({ bundleKey: 'bedding-bundle' });
+    case 'cart.channel':
+      return j({ distributionChannelKey: 'distribution-channel', supplyChannelKey: 'pickup-store' });
+    case 'cart.stockGate':
+      return j({ inventoryMode: 'ReserveOnOrder' });
+    case 'cart.address':
+      return j({
+        country: 'DE',
+        firstName: 'Alex',
+        lastName: 'Doe',
+        streetName: 'Hauptstraße',
+        streetNumber: '1',
+        postalCode: '10115',
+        city: 'Berlin',
+      });
+    case 'cart.promo':
+      return j({ code: 'SAVE10' });
+    // Session 5 — identity. The demo account is the one seeded before the session (pre-5.x setup);
+    // sign-up wants a fresh email each run, so the seed carries a placeholder to edit.
+    case 'customer.register':
+      return j({ email: 'new.shopper@lhc.test', password: 'Lhc-demo-2026!', firstName: 'New', lastName: 'Shopper' });
+    case 'customer.login':
+    case 'customer.cartMerge':
+      return j({ email: 'ada@lhc.test', password: 'Lhc-demo-2026!' });
+    case 'customer.addresses':
+      return j({
+        key: 'home',
+        country: 'DE',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        streetName: 'Hauptstraße',
+        streetNumber: '1',
+        postalCode: '10115',
+        city: 'Berlin',
+        defaultShipping: true,
+      });
+    case 'customer.password':
+      return j({ currentPassword: 'Lhc-demo-2026!', newPassword: 'Lhc-demo-2026!' });
+    case 'customer.emailVerify':
+      return j({ tokenValue: '<paste the value from POST /api/customers/email/token>' });
+    default:
+      return '';
+  }
+}
+
 /** Main panel: full detail of the selected task + Try It. */
 export function TaskDetail({
   task,
@@ -95,11 +164,16 @@ export function TaskDetail({
   completed: boolean;
   loading: boolean;
   storefrontUrl: string;
-  onTry: (task: TaskItem, method: string, endpoint: string) => void;
+  onTry: (task: TaskItem, method: string, endpoint: string, body?: string) => void;
 }) {
   const params = endpointParams(task.endpoint);
   const [values, setValues] = useState<Record<string, string>>(() => seedValues(task));
   const [query, setQuery] = useState<QueryParam[]>(() => seedQuery(task));
+  const [body, setBody] = useState<string>(() => seedBody(task));
+  const isWrite = /^(POST|PUT|PATCH)$/i.test(task.httpMethod);
+  // Only write tasks that actually take a JSON body get the body box; query-only writes (e.g. 4.1
+  // create, which reads currency/country from the query) don't — they'd only show a misleading "{}".
+  const takesBody = isWrite && seedBody(task).trim() !== '';
   const resolved = resolveEndpoint(task.endpoint, values) + buildQuery(query);
   const missing = params.filter((p) => !(values[p] ?? '').trim());
   const mc = methodColor(task.httpMethod);
@@ -263,9 +337,27 @@ export function TaskDetail({
         </div>
       </Section>
 
+      {takesBody ? (
+        <Section title="Request body">
+          <p className="mb-2 text-xs leading-relaxed text-[var(--color-text-muted)]">
+            Sent as the JSON request body (<code>content-type: application/json</code>). Session 4 is the
+            first with write tasks — edit the fields (a real <code>sku</code>, a <code>bundleKey</code>, a
+            promo <code>code</code>) and <em>Try It</em>. A cart must exist first — run <code>4.1</code> once.
+          </p>
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={Math.min(12, Math.max(3, body.split('\n').length + 1))}
+            spellCheck={false}
+            placeholder="{ }"
+            className="w-full rounded-md border border-[var(--color-brd)] bg-[var(--color-bg-panel)] px-3 py-2 font-mono text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
+          />
+        </Section>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <button
-          onClick={() => onTry(task, task.httpMethod, resolved)}
+          onClick={() => onTry(task, task.httpMethod, resolved, takesBody ? body : undefined)}
           disabled={loading || missing.length > 0}
           title={missing.length > 0 ? `Enter ${missing.join(', ')} first` : undefined}
           className="inline-flex items-center gap-2 rounded-md bg-[var(--color-violet)] px-4 py-2 font-medium text-white hover:bg-[var(--color-violet-light)] disabled:cursor-not-allowed disabled:opacity-60"

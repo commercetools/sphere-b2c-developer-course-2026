@@ -19,5 +19,7 @@ It proxies `/api/*` to the BFF on **:8081**, so start `bff-java` first. No crede
 ## Using it
 1. Pick the next task from the sidebar.
 2. Implement its method in `bff-java`.
-3. Hit **Try It** → a green `200` flips the task ✓ and unlocks its capability.
+3. Hit **Try It** → a green `200` flips the task ✓ and unlocks its capability. Write tasks (Session 4
+   onward) come with a **pre-filled JSON body** and the query params that route to the right task
+   (e.g. `?recurring=true`, `?mergeMode=…`) — edit them freely.
 4. Switch to the **Storefront** to see the matching section light up.

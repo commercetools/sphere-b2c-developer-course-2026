@@ -11,6 +11,10 @@ export interface ProductView {
   price: MoneyView | null;
   /** Pre-discount list price when a discount applies (S3 search cards), else absent/null. */
   originalPrice?: MoneyView | null;
+  /** Recurrence-scoped ("Subscribe & Save") price for the shopper's currency, if the product has one. */
+  recurringPrice?: MoneyView | null;
+  /** Pre-discount recurring price when a product discount applies (for a strikethrough), else null. */
+  recurringOriginalPrice?: MoneyView | null;
   imageUrl?: string | null;
 }
 

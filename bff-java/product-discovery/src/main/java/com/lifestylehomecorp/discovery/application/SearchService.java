@@ -1,12 +1,17 @@
 package com.lifestylehomecorp.discovery.application;
 
+import com.commercetools.api.models.product_type.AttributeDefinition;
+import com.commercetools.api.models.product_type.ProductType;
 import com.lifestylehomecorp.discovery.domain.PlpCard;
 import com.lifestylehomecorp.discovery.domain.PlpResponse;
 import com.lifestylehomecorp.platform.errors.TaskNotImplementedException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Discovery use-cases. The repository returns the raw GraphQL response; this service resolves the
@@ -21,6 +26,16 @@ public class SearchService {
     private static final String PRICE_FIELD = "variants.prices.centAmount";
     /** Default page size for the storefront PLP. */
     private static final int DEFAULT_PAGE_SIZE = 24;
+
+    // --- 3.8 curation policy (the human-in-the-loop decision AI can't own) ------------------------
+    // An AI would happily facet EVERY searchable attribute; that clutters the rail and costs compute.
+    // The policy below is the judgement call: which searchable attributes become facets, how each
+    // type maps to a facet shape, and a cap. Change these three knobs to re-curate the rail.
+
+    /** Attribute names to keep OFF the rail even when searchable (noisy / not useful as filters). */
+    private static final Set<String> FACET_DENY_LIST = Set.of("product-ref");
+    /** Cap on DERIVED facets (price is always added on top) — a filter rail longer than this is clutter. */
+    private static final int MAX_DERIVED_FACETS = 8;
 
     private final SearchRepository searchRepository;
     private final StoreRepository storeRepository;
@@ -73,6 +88,98 @@ public class SearchService {
     }
 
     /**
+     * Task 3.8 (T2) — configurable facets. Instead of 3.5's hardcoded three, DERIVE the facet set from
+     * the product types' <b>searchable</b> attributes, under a curation policy, so adding a searchable
+     * attribute in the Merchant Center surfaces a filter with no code change. This is the T2 method the
+     * participant implements; the ProductType read ({@link ProductTypeRepository}), the {@link FacetSpec}
+     * shape and the builder's facet emission are trainer-provided plumbing.
+     *
+     * <p><b>Derivation.</b> Collect every {@code isSearchable} attribute definition across all product
+     * types (deduped by name — an attribute shared by several types is one facet), then map each by its
+     * attribute type: {@code enum}/{@code lenum} → a {@code distinct} facet on
+     * {@code variants.attributes.<name>.key}; {@code number}/{@code money} → a {@code stats} facet on
+     * the attribute; and <b>skip</b> {@code text}/{@code ltext}/{@code boolean}/{@code reference}/
+     * {@code set}/date-like types (they make poor facets — free text, unbounded, or opaque ids).
+     *
+     * <p><b>Curation policy (the decision AI can't own).</b> (1) start from searchable only; (2) drop
+     * anything on {@link #FACET_DENY_LIST}; (3) apply the per-type mapping above (which is itself a
+     * curation choice — e.g. numeric attributes get {@code stats} for a slider, not arbitrary
+     * {@code ranges}, because sensible range boundaries are domain-specific); (4) cap at
+     * {@link #MAX_DERIVED_FACETS} to keep the rail short; (5) ALWAYS append the curated <b>price</b>
+     * facets ({@code ranges} + {@code stats}) on top. Note colour is no longer special-cased — it flows
+     * in automatically because {@code search-color} is a searchable localized-enum.
+     */
+    public PlpResponse facetConfig(String store, String locale, PriceSelection price) {
+        // TODO (Task 3.8): stop hardcoding the facet set — DERIVE it from the catalogue. Read the product
+        // types via productTypeRepository.findAll(), collect the attribute definitions flagged isSearchable,
+        // and map each to a FacetSpec by attribute type (enum/lenum → distinct on
+        // variants.attributes.<name>.key; number/money → stats; skip text/ltext/boolean/reference/set).
+        // Apply YOUR curation policy — which attributes actually make good facets (not all do), a cap, and
+        // always include price — then base(store, locale, price).withFacets(true).facetSpecs(specs).build()
+        // → searchRepository.search(...) → SearchMapper.toResponse(...). The ProductType read, the FacetSpec
+        // shape, and the builder's facet emission are trainer-provided; the derivation + curation are yours.
+        // See session-tasks-detailed.md (Task 3.8); ground AttributeDefinition/ProductType on the MCP.
+        throw new TaskNotImplementedException("3.8");
+    }
+
+    /** Turn the product types' searchable attributes into a curated facet set (see {@link #facetConfig}). */
+    private List<FacetSpec> deriveFacets(List<ProductType> productTypes, String locale) {
+        // Dedupe by attribute name, first definition wins (an attribute shared across types is one facet).
+        Map<String, FacetSpec> derived = new LinkedHashMap<>();
+        for (ProductType type : productTypes) {
+            if (type == null || type.getAttributes() == null) {
+                continue;
+            }
+            for (AttributeDefinition attr : type.getAttributes()) {
+                if (derived.size() >= MAX_DERIVED_FACETS) {
+                    break;
+                }
+                if (!isFacetable(attr) || derived.containsKey(attr.getName())) {
+                    continue;
+                }
+                FacetSpec spec = toSpec(attr, locale);
+                if (spec != null) {
+                    derived.put(attr.getName(), spec);
+                }
+            }
+        }
+        List<FacetSpec> specs = new ArrayList<>(derived.values());
+        // Always include the curated price facets on top (ranges need human-chosen boundaries).
+        specs.add(FacetSpec.ranges("price", PRICE_FIELD));
+        specs.add(FacetSpec.stats("priceStats", PRICE_FIELD));
+        return specs;
+    }
+
+    /** Searchable, named, and not denied — the gate before the per-type mapping. */
+    private static boolean isFacetable(AttributeDefinition attr) {
+        return attr != null
+                && Boolean.TRUE.equals(attr.getIsSearchable())
+                && attr.getName() != null && !attr.getName().isBlank()
+                && !FACET_DENY_LIST.contains(attr.getName())
+                && attr.getType() != null;
+    }
+
+    /**
+     * Map ONE searchable attribute to a facet spec by its type discriminator ({@code AttributeType.name}
+     * — {@code enum}/{@code lenum}/{@code number}/{@code money}/…), or {@code null} to skip a type that
+     * doesn't facet well.
+     */
+    private static FacetSpec toSpec(AttributeDefinition attr, String locale) {
+        String name = attr.getName();
+        String type = attr.getType().getName();
+        String base = "variants.attributes." + name;
+        return switch (type) {
+            case "enum" -> FacetSpec.distinct(name, base + ".key", "enum", null);
+            case "lenum" -> FacetSpec.distinct(name, base + ".key", "lenum",
+                    locale == null || locale.isBlank() ? null : locale);
+            case "number" -> FacetSpec.stats(name, base);
+            case "money" -> FacetSpec.stats(name, base + ".centAmount");
+            // Skipped: text, ltext, boolean, reference, set, date/time/datetime, nested — poor facets.
+            default -> null;
+        };
+    }
+
+    /**
      * Tasks 3.6 / 3.7 (T2) — the one storefront PLP search. Composes store scope + full-text +
      * category + facets + sort + pagination into a SINGLE Product Search, and (3.7) routes the
      * selected facet filters to {@code postFilter} so they narrow the results WITHOUT changing the
@@ -87,20 +194,6 @@ public class SearchService {
         // applySort, applyPostFilters and applyPriceRange helpers are trainer-provided — call them. Goal +
         // decisions in the @TaskDescription; see session-tasks-detailed.md; ground on the commercetools-knowledge MCP.
         throw new TaskNotImplementedException("3.6");
-    }
-
-    /** Task 3.8 (T2 · stretch) — configurable facets derived from the product type's searchable attributes. */
-    public PlpResponse facetConfig(String store, String locale, PriceSelection price) {
-        // TODO (Task 3.8): stop hardcoding the facet set — DERIVE it from the catalogue. Read the product
-        // types via productTypeRepository.findAll(), collect the attribute definitions flagged isSearchable,
-        // and map each to a FacetSpec by attribute type (enum/lenum → distinct on
-        // variants.attributes.<name>.key; number/money → stats; skip text/ltext/boolean/reference/set).
-        // Apply YOUR curation policy — which attributes actually make good facets (not all do), a cap, and
-        // always include price — then base(store, locale, price).withFacets(true).facetSpecs(specs).build()
-        // → searchRepository.search(...) → SearchMapper.toResponse(...). The ProductType read, the FacetSpec
-        // shape, and the builder's facet emission are trainer-provided; the derivation + curation are yours.
-        // See session-tasks-detailed.md (Task 3.8); ground AttributeDefinition/ProductType on the MCP.
-        throw new TaskNotImplementedException("3.8");
     }
 
     // --- assembly helpers -------------------------------------------------------------------------
@@ -129,8 +222,8 @@ public class SearchService {
 
     /**
      * Resolve the category <em>key</em> the storefront nav sends to the <em>id</em> the {@code
-     * categoriesSubTree} filter matches on (cached, trainer-provided). Absent/unknown → {@code null},
-     * so the builder omits the category clause rather than failing — call this from 3.4 / 3.6.
+     * categoriesSubTree} filter matches on (cached). An absent/unknown key yields {@code null}, so the
+     * builder simply omits the category clause (the store's whole assortment) rather than failing.
      */
     private String resolveCategory(String categoryKey) {
         return categoryRepository.idByKey(categoryKey);

@@ -23,7 +23,10 @@ public final class CatalogViewMapper {
     }
 
     public static ProductView toView(ProductSummary p) {
-        return new ProductView(p.key(), p.name(), p.slug(), toView(p.price()), p.imageUrl());
+        return new ProductView(p.key(), p.name(), p.slug(),
+                toView(p.price()), toView(p.originalPrice()),
+                toView(p.recurringPrice()), toView(p.recurringOriginalPrice()),
+                p.imageUrl());
     }
 
     /** The PLP envelope: this page's cards + the total match count (Task 2.1 / 2.4). */

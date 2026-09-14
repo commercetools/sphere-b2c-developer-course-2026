@@ -3,9 +3,11 @@
 A layered ("hexagonal") Spring Boot **Backend-for-Frontend** for commercetools. This is where the
 course tasks live: you implement one SDK call at a time, and the storefront lights up.
 
-> **Sessions 1–3** — **Ignition** (Platform, SDK, Project & Stores), **The Catalogue** (Product &
-> Category reads, with channel/country/currency price selection), and **Find It** (store-scoped discovery
-> via the Product Search API over GraphQL — search, facets, PLP).
+> **Sessions 1–5** — **Ignition** (Platform, SDK, Project & Stores), **The Catalogue** (Product &
+> Category reads, with channel/country/currency price selection), **Find It** (store-scoped discovery
+> via the Product Search API over GraphQL — search, facets, PLP), **Fill the Basket** (the cart write
+> model — update actions on a stateful cart carrying `version`), and **Know Your Customer** (identity —
+> sign-up / sign-in, the guest → customer cart merge, customer-group pricing, the BFF session boundary).
 
 ## The shape (four layers)
 ```
@@ -18,11 +20,18 @@ infrastructure  the commercetools SDK call — the ONLY place SDK types live
 service maps them to your `domain` models.
 
 ## Modules
-- `platform` — shared kernel (the single `ProjectApiRoot` client, config, error advice). Don't edit.
+- `platform` — shared kernel (the single `ProjectApiRoot` client, config, error advice, and the
+  `ShopperSession` — the anonymous id · active cart · signed-in customer every module reads). Don't edit.
 - `project` — the worked reference (`GET /api/project`) **plus your Session-1 Stores tasks**.
 - `catalog` — **your Session-2 tasks**: products (PLP/PDP), categories, variants, bundles, slug routing.
 - `product-discovery` — **your Session-3 tasks**: store-scoped Product Search over GraphQL — search,
   full-text, category subtree, facets, PLP orchestration, postFilter.
+- `cart` — **your Session-4 tasks**: the guest cart and its write model — create, line items, the bundle
+  in the cart, a Subscribe & Save line, promo code, the cart summary (channel · address · shipping ·
+  shopping list ship pre-built).
+- `customer` — **your Session-5 tasks**: sign-up, sign-in, the guest → customer cart merge, the address
+  book, password change / reset, the customer-group price context and `GET /api/session` (profile, email
+  verification and the wishlist carry-over ship pre-built).
 - `training` — task/progress tracking (powers Commerce Canvas). Don't edit.
 - `app` — the aggregator; runs the full BFF on **:8081**.
 
@@ -88,5 +97,13 @@ when compiled classes change — so you never run `mvn clean install` after a ta
 - **Session-3 tasks:** store-scoped Product Search (GraphQL `productsSearch`) returning hydrated cards,
   full-text (+fuzzy), category subtree, facets (colour + price range/slider), the composed PLP
   (sort + pagination), and postFilter (stable facet counts) — plus the configurable-facets stretch.
+- **Session-4 tasks (the first writes):** create the guest cart, add / change / remove line items (the
+  service owns `version` + the 409 retry — you write the SDK call), the bundle in the cart, the recurring
+  Subscribe & Save line, inventory modes, the promo code, and the cart summary.
+- **Session-5 tasks (identity):** sign-up and sign-in (carry the guest's `anonymousId`), the deliberate
+  cart merge with a merge report, the address book (one update, default by key), password change + the
+  two-step reset, the customer-group price context, and `GET /api/session` — identity lives in the BFF
+  session, never in a request parameter. Some tasks are `application`-layer logic (T2), not just one SDK
+  call — the Canvas card says which.
 
 Stuck? The **`solution`** branch has the reference implementation — try it yourself first.

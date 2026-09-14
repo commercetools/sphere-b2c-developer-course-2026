@@ -5,6 +5,8 @@ export interface InspectorState {
   title: string;
   method: string;
   endpoint: string;
+  /** The JSON body sent with the request (write tasks); shown so the call is fully reproducible. */
+  requestBody?: string;
   result: TryResult;
 }
 
@@ -39,6 +41,22 @@ export function Inspector({ state, loading }: { state: InspectorState | null; lo
         <p className="rounded-md bg-[var(--color-bg-card)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
           No response — is your BFF running on :8081?
         </p>
+      ) : null}
+      {state.requestBody && state.requestBody.trim() !== '' ? (
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+            Request body
+          </p>
+          <pre
+            className="overflow-auto rounded-md border border-[var(--color-brd)] bg-[var(--color-bg-base)] p-3 text-xs leading-relaxed text-[var(--color-text-secondary)]"
+            style={{ fontFamily: 'var(--font-mono)' }}
+          >
+            {state.requestBody}
+          </pre>
+          <p className="mb-1 mt-3 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+            Response
+          </p>
+        </div>
       ) : null}
       <pre
         className="max-h-[60vh] overflow-auto rounded-md border border-[var(--color-brd)] bg-[var(--color-bg-base)] p-3 text-xs leading-relaxed text-[var(--color-text-secondary)]"

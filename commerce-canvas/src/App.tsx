@@ -68,11 +68,11 @@ export function App() {
     setExpandedSession(task.session);
   };
 
-  async function handleTry(task: TaskItem, method: string, endpoint: string) {
+  async function handleTry(task: TaskItem, method: string, endpoint: string, requestBody?: string) {
     setLoading(true);
     setInspectorOpen(true);
-    const result = await tryEndpoint(method, endpoint);
-    setInspector({ title: task.title, method, endpoint, result });
+    const result = await tryEndpoint(method, endpoint, requestBody);
+    setInspector({ title: task.title, method, endpoint, requestBody, result });
     setLoading(false);
     if (result.ok) void progressF.refresh();
   }
