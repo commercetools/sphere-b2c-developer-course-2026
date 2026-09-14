@@ -272,7 +272,9 @@ public class CatalogService {
         }
         try {
             Money total = bundle(product.getKey(), locale, price).totalPrice(); // reuse 2.7's roll-up
-            return new ProductSummary(summary.key(), summary.name(), summary.slug(), total, summary.imageUrl());
+            return new ProductSummary(summary.key(), summary.name(), summary.slug(), total,
+                    summary.originalPrice(), summary.recurringPrice(), summary.recurringOriginalPrice(),
+                    summary.imageUrl());
         } catch (RuntimeException e) {
             return summary; // bundle resolution unavailable yet (e.g. before task 2.7) → "—"
         }

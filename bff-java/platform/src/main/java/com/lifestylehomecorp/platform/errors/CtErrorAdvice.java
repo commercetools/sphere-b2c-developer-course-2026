@@ -4,6 +4,7 @@ import com.commercetools.api.models.error.ErrorResponse;
 import io.vrap.rmf.base.client.ApiHttpException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
@@ -72,6 +73,19 @@ public class CtErrorAdvice {
         }
         String message = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
         return ResponseEntity.status(status).body(ApiError.of(status.value(), message));
+    }
+
+    /**
+     * A missing or malformed request body (e.g. a POST/PUT task called with no JSON) -> 400, not the
+     * catch-all 500 below. A body the client forgot to send is a client error; surface it as one with
+     * a clear message instead of "Unexpected error."
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of(HttpStatus.BAD_REQUEST.value(),
+                        "Request body is missing or malformed — send a JSON body for this endpoint."));
     }
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CtErrorAdvice.class);

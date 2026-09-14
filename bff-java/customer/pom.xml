@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lifestylehomecorp</groupId>
+        <artifactId>training-bff</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>customer</artifactId>
+    <name>customer (domain module)</name>
+    <description>
+        Customer domain (Session 5 — "Know Your Customer"): identity for the shopper — sign-up, sign-in
+        with the anonymous → customer cart merge, profile + address book, customer group → customer
+        price, password change / reset and email-verification tokens, the BFF session boundary, and
+        PII-safe projection + deletion. Depends on `platform` only — it carries its own cart read for
+        the merge report rather than depending on the `cart` module.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>platform</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <classifier>exec</classifier>
+                    <mainClass>com.lifestylehomecorp.customer.CustomerApplication</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

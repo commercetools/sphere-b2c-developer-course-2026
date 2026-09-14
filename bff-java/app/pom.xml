@@ -36,6 +36,14 @@
         </dependency>
         <dependency>
             <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>cart</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
+            <artifactId>customer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lifestylehomecorp</groupId>
             <artifactId>training</artifactId>
         </dependency>
         <dependency>

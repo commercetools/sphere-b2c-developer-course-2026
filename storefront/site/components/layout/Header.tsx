@@ -1,8 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ShoppingCart } from '@/components/ui/icons';
+import { ShoppingCart, Heart } from '@/components/ui/icons';
 import { Link } from '@/i18n/routing';
+import { useCart } from '@/hooks/useCart';
+import { useShoppingList } from '@/hooks/useShoppingList';
 import { LanguageSwitch } from './LanguageSwitch';
 import { CurrencySwitch } from './CurrencySwitch';
 import { CountrySwitch } from './CountrySwitch';
@@ -14,6 +16,10 @@ import { SearchBar } from './SearchBar';
 
 export function Header() {
   const t = useTranslations();
+  const { cart } = useCart();
+  const count = cart?.itemCount ?? 0;
+  const { list } = useShoppingList();
+  const saved = list?.itemCount ?? 0;
   return (
     <header className="sticky top-0 z-20">
       <AnnouncementBar />
@@ -33,8 +39,20 @@ export function Header() {
             <Link href="/account" className="hover:text-[var(--color-terra)]">
               {t('nav.account')}
             </Link>
-            <Link href="/cart" className="font-medium hover:text-[var(--color-terra)]">
+            {saved > 0 ? (
+              <Link href="/cart" aria-label={`Saved items (${saved})`} title="Saved for later"
+                className="inline-flex items-center gap-1 hover:text-[var(--color-terra)]">
+                <Heart size={16} className="inline align-[-3px]" />
+                <span className="text-xs font-semibold">{saved}</span>
+              </Link>
+            ) : null}
+            <Link href="/cart" className="relative font-medium hover:text-[var(--color-terra)]">
               <ShoppingCart size={16} className="mr-1.5 inline align-[-3px]" />{t('nav.cart')}
+              {count > 0 ? (
+                <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--color-terra)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                  {count}
+                </span>
+              ) : null}
             </Link>
           </nav>
         </div>

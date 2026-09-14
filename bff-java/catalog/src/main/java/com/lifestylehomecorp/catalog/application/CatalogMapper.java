@@ -35,16 +35,16 @@ final class CatalogMapper {
     // --- products (PLP/PDP): map the typed Product Projection to a domain card -------------------
 
     static ProductSummary toSummary(ProductProjection product, String locale, String currency) {
+        ProductVariant mv = product.getMasterVariant();
         return new ProductSummary(
                 product.getKey(),
                 localized(product.getName(), locale),
                 localized(product.getSlug(), locale),
-                masterPrice(product, currency),
+                priceOf(mv, currency),                    // effective one-time (discounted if any)
+                originalPriceOf(mv, currency),            // pre-discount one-time, else null
+                recurringPriceOf(mv, currency),           // effective recurring (discounted if any)
+                recurringOriginalPriceOf(mv, currency),   // pre-discount recurring, else null
                 masterImage(product));
-    }
-
-    private static Money masterPrice(ProductProjection product, String currency) {
-        return priceOf(product.getMasterVariant(), currency);
     }
 
     private static String masterImage(ProductProjection product) {
@@ -52,26 +52,84 @@ final class CatalogMapper {
     }
 
     /**
-     * The variant's price for the requested currency: prefer the SELECTED price (price selection has
-     * already applied the precedence + fallback down to the base currency price). Fall back only to an
-     * embedded price in the SAME {@code currency} — never a different currency — so a product with no
-     * price in the requested currency yields {@code null}, and the storefront shows "—" rather than a
-     * misleading wrong-currency price.
+     * The EFFECTIVE one-time price for the currency — the discounted value when a Product Discount
+     * applies, else the base — so the PDP/PLP shows what the cart will charge. Prefers the SELECTED
+     * price (price selection has applied precedence + base-currency fallback); falls back to an embedded
+     * one-time price in the SAME {@code currency}. Null when there is no price in the requested currency,
+     * so the storefront shows "—" rather than a wrong-currency price.
      */
     static Money priceOf(ProductVariant v, String currency) {
+        return effective(oneTimePrice(v, currency));
+    }
+
+    /** The pre-discount (list) one-time price — only when a Product Discount applies (else null: nothing to strike through). */
+    static Money originalPriceOf(ProductVariant v, String currency) {
+        return listWhenDiscounted(oneTimePrice(v, currency));
+    }
+
+    /**
+     * The variant's recurrence-scoped ("Subscribe &amp; Save") EFFECTIVE price in the currency, if any.
+     * Price selection only picks the one-time price, so we scan the full {@code prices[]} for the one
+     * carrying a {@code recurrencePolicy}. Null when the product has no recurring price.
+     */
+    static Money recurringPriceOf(ProductVariant v, String currency) {
+        return effective(recurrencePrice(v, currency));
+    }
+
+    /** The pre-discount (list) recurring price — only when a Product Discount applies to it (else null). */
+    static Money recurringOriginalPriceOf(ProductVariant v, String currency) {
+        return listWhenDiscounted(recurrencePrice(v, currency));
+    }
+
+    /** The selected one-time Price, or an embedded one-time price in the same currency; never a recurrence price. */
+    private static Price oneTimePrice(ProductVariant v, String currency) {
         if (v == null) {
             return null;
         }
-        TypedMoney value = v.getPrice() != null ? v.getPrice().getValue() : null;
-        if (value == null && currency != null && !currency.isBlank() && v.getPrices() != null) {
+        if (v.getPrice() != null) {
+            return v.getPrice();
+        }
+        if (currency != null && !currency.isBlank() && v.getPrices() != null) {
             for (Price p : v.getPrices()) {
-                if (p.getValue() != null && currency.equals(p.getValue().getCurrencyCode())) {
-                    value = p.getValue();
-                    break;
+                if (p.getRecurrencePolicy() == null && p.getValue() != null
+                        && currency.equals(p.getValue().getCurrencyCode())) {
+                    return p;
                 }
             }
         }
+        return null;
+    }
+
+    /** The embedded recurrence-scoped price for the currency, or null. */
+    private static Price recurrencePrice(ProductVariant v, String currency) {
+        if (v == null || currency == null || currency.isBlank() || v.getPrices() == null) {
+            return null;
+        }
+        for (Price p : v.getPrices()) {
+            if (p.getRecurrencePolicy() != null && p.getValue() != null
+                    && currency.equals(p.getValue().getCurrencyCode())) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /** The price the cart will charge: the discounted value if a Product Discount applies, else the base. */
+    private static Money effective(Price p) {
+        if (p == null) {
+            return null;
+        }
+        TypedMoney value = p.getDiscounted() != null && p.getDiscounted().getValue() != null
+                ? p.getDiscounted().getValue() : p.getValue();
         return value == null ? null : new Money(value.getCurrencyCode(), value.getCentAmount());
+    }
+
+    /** The base (list) value, but ONLY when a discount applies — so the caller can strike it through. */
+    private static Money listWhenDiscounted(Price p) {
+        if (p == null || p.getDiscounted() == null || p.getValue() == null) {
+            return null;
+        }
+        return new Money(p.getValue().getCurrencyCode(), p.getValue().getCentAmount());
     }
 
     static String imageOf(ProductVariant v) {

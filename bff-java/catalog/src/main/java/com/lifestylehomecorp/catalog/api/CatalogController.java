@@ -8,6 +8,7 @@ import com.lifestylehomecorp.catalog.api.dto.VariantMatrixView;
 import com.lifestylehomecorp.catalog.application.CatalogService;
 import com.lifestylehomecorp.catalog.application.PriceSelection;
 import com.lifestylehomecorp.platform.annotations.TaskDescription;
+import com.lifestylehomecorp.platform.session.ShopperSession;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,19 +25,26 @@ import java.util.List;
 public class CatalogController {
 
     private final CatalogService catalogService;
+    private final ShopperSession session;
 
-    public CatalogController(CatalogService catalogService) {
+    public CatalogController(CatalogService catalogService, ShopperSession session) {
         this.catalogService = catalogService;
+        this.session = session;
     }
 
     /**
      * Assemble the price-selection context from the request. All parameters are optional: the
-     * storefront sends the shopper's currency + country, the active store's distribution channel
-     * (by key — the service resolves it to an id), and later the customer group after login. Whatever
-     * is present is applied; commercetools picks the best-matching price and falls back.
+     * storefront sends the shopper's currency + country and the active store's distribution channel
+     * (by key — the service resolves it to an id). The customer group is NOT a storefront concern: it
+     * comes from the signed-in shopper on the session (Session 5, task 5.6) — an explicit
+     * {@code priceCustomerGroup} (a group id, Canvas / trainer use) still wins when given. A guest has no
+     * group, so the ungrouped price is selected. Whatever is present is applied; commercetools picks the
+     * best-matching price and falls back.
      */
-    private static PriceSelection price(String currency, String country, String channel, String customerGroup) {
-        return new PriceSelection(currency, country, channel, customerGroup);
+    private PriceSelection price(String currency, String country, String channel, String customerGroup) {
+        String group = customerGroup != null && !customerGroup.isBlank()
+                ? customerGroup : session.customerGroupIdOrNull();
+        return new PriceSelection(currency, country, channel, group);
     }
 
     @TaskDescription(

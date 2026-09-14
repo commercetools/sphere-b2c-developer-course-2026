@@ -58,5 +58,13 @@ export function bffPost<T>(path: string, body?: unknown): Promise<BffResult<T>> 
   return request<T>('POST', path, body);
 }
 
+export function bffPatch<T>(path: string, body?: unknown): Promise<BffResult<T>> {
+  return request<T>('PATCH', path, body);
+}
+
+export function bffDelete<T>(path: string): Promise<BffResult<T>> {
+  return request<T>('DELETE', path);
+}
+
 /** SWR fetcher: returns the whole result so callers can inspect `notImplemented`. */
 export const bffFetcher = <T>(path: string): Promise<BffResult<T>> => bffGet<T>(path);

@@ -85,7 +85,7 @@ export function ProductCard({ product }: { product: ProductView }) {
             ) : null}
           </span>
           {pdpUnlocked ? (
-            <AddToCartButton />
+            <AddToCartButton productKey={product.key} />
           ) : (
             <button
               type="button"

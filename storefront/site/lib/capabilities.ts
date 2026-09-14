@@ -15,14 +15,17 @@ export interface CapabilityMeta {
   bffEndpoint: string;
 }
 
+// The course's session codenames — keep in step with planning/SESSION_PLAN.md ("At a glance").
 const SESSION_NAMES: Record<string, string> = {
-  'Session 1': 'Platform, SDK & Project',
+  'Session 1': 'Ignition — Platform, SDK & Project',
   'Session 2': 'The Catalogue',
-  'Session 3': 'Find It',
-  'Session 4': 'The Cart',
-  'Session 5': 'Checkout & Orders',
-  'Session 6': 'Customers & Identity',
-  'Session 7': 'Inventory & Availability',
+  'Session 3': 'Find It — Store-Scoped Discovery',
+  'Session 4': 'Fill the Basket — The Cart',
+  'Session 5': 'Know Your Customer — Identity',
+  'Session 6': 'Close the Deal — Checkout & Orders',
+  'Session 7': 'Beyond the BFF — Extensibility',
+  'Session 8': 'Sync the Catalogue — Import',
+  'Session 9': 'Connect',
 };
 
 /** Session display order for the status board. */
@@ -56,11 +59,28 @@ export const CAPABILITY_META: Record<string, CapabilityMeta> = {
   'search.facets':         meta('search.facets',         'Session 3', 'Faceted search',                 'GET /api/products/facets?store='),
   'search.plpV2':          meta('search.plpV2',          'Session 3', 'Storefront PLP (compose)',       'GET /api/plp?store='),
   'search.postFilter':     meta('search.postFilter',     'Session 3', 'Facet post-filtering',           'GET /api/plp?store=&filter='),
-  'cart.write':            meta('cart.write',            'Session 4', 'Cart add/update/remove',         'POST /api/cart'),
-  'cart.idempotent':       meta('cart.idempotent',       'Session 4', 'Version-conflict-safe mutations','POST /api/cart'),
-  'order.create':          meta('order.create',          'Session 5', 'Checkout + order placement',     'POST /api/orders'),
-  'customer.identity':     meta('customer.identity',     'Session 6', 'Login / register / account',     'POST /api/customers/login'),
-  'customer.cartMerge':    meta('customer.cartMerge',    'Session 6', 'Anonymous → customer cart merge','POST /api/cart/merge'),
+  'cart.create':           meta('cart.create',           'Session 4', 'Create the guest cart',          'POST /api/cart'),
+  'cart.lineItems':        meta('cart.lineItems',        'Session 4', 'Add / manage line items',        'POST·PATCH·DELETE /api/cart/line-items'),
+  'cart.bundles':          meta('cart.bundles',          'Session 4', 'Add a bundle to the cart',       'POST /api/cart/bundles'),
+  'cart.recurring':        meta('cart.recurring',        'Session 4', 'Subscription line item',         'POST /api/cart/line-items?recurring'),
+  'cart.channel':          meta('cart.channel',          'Session 4', 'Fulfilment: pickup vs delivery', 'PUT /api/cart/line-items/{id}/channel'),
+  'cart.stockGate':        meta('cart.stockGate',        'Session 4', 'Inventory modes + stock gate',   'PUT /api/cart/line-items/{id}/inventory-mode'),
+  'cart.address':          meta('cart.address',          'Session 4', 'Shipping address',               'PUT /api/cart/shipping-address'),
+  'cart.shipping':         meta('cart.shipping',         'Session 4', 'Shipping method: match & select','GET /api/cart/shipping-methods'),
+  'cart.promo':            meta('cart.promo',            'Session 4', 'Apply a discount code',          'POST /api/cart/discount-codes'),
+  'cart.summary':          meta('cart.summary',          'Session 4', 'Cart summary + savings',         'GET /api/cart'),
+  'cart.shoppingList':     meta('cart.shoppingList',     'Session 4', 'Shopping list (wishlist)',       'GET·POST /api/shopping-list'),
+  'customer.register':     meta('customer.register',     'Session 5', 'Register (sign up)',             'POST /api/customers/signup'),
+  'customer.login':        meta('customer.login',        'Session 5', 'Sign in (login)',                'POST /api/customers/login'),
+  'customer.cartMerge':    meta('customer.cartMerge',    'Session 5', 'Guest → customer cart merge',    'POST /api/customers/login?mergeMode='),
+  'customer.profile':      meta('customer.profile',      'Session 5', 'My profile: read & update',      'GET·PATCH /api/customers/me'),
+  'customer.addresses':    meta('customer.addresses',    'Session 5', 'Address book + defaults',        'POST /api/customers/me/addresses'),
+  'customer.groups':       meta('customer.groups',       'Session 5', 'Customer group → customer price','GET /api/price-context'),
+  'customer.password':     meta('customer.password',     'Session 5', 'Password: change & reset',       'POST /api/customers/me/password'),
+  'customer.emailVerify':  meta('customer.emailVerify',  'Session 5', 'Email verification',             'POST /api/customers/email/confirm'),
+  'customer.session':      meta('customer.session',      'Session 5', 'Identity boundary (Me API vs BFF)','GET /api/session'),
+  'customer.pii':          meta('customer.pii',          'Session 5', 'PII & GDPR: delete my account',  'DELETE /api/customers/me'),
+  'order.create':          meta('order.create',          'Session 6', 'Checkout + order placement',     'POST /api/orders'),
   'inventory.read':        meta('inventory.read',        'Session 7', 'Availability badges',            'GET /api/inventory/{sku}'),
 };
 
